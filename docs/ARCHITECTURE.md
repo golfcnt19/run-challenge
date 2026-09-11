@@ -15,7 +15,7 @@
 ## Frontend — เว็บ static ล้วน
 
 - HTML + CSS + JavaScript ธรรมดา (ES modules) ไม่มี framework ไม่มีขั้น build
-- 2 หน้า: `index.html` (ตารางคะแนน 3 แท็บ) และ `entry.html` (กรอก/ลบผล)
+- 3 หน้า: `index.html` (ตารางคะแนน 3 แท็บ) · `entry.html` (กรอก/ลบผล) · `cards.html` (ใช้การ์ดพิเศษ)
 - ไลบรารีเดียว: Chart.js จาก cdnjs · ฟอนต์ Noto Sans Thai จาก Google Fonts
 - **คิดคะแนนทั้งหมดในเบราว์เซอร์** (`js/scoring.js`) — ดึงข้อมูลดิบมาแล้วคำนวณเอง
 - PWA เบื้องต้น: `manifest.webmanifest` + `icons/` เพิ่มลงหน้าจอโฮมได้ทั้ง iOS/Android
@@ -28,6 +28,7 @@
 | `js/format.js` | วันที่ไทย, ตัวเลข, แปลงรูปแบบวันที่ที่ชีตส่งมา |
 | `js/app.js` | วาดหน้าตารางคะแนน (การ์ด, สนามแข่ง, รายวัน, รายทีม) |
 | `js/entry.js` | หน้ากรอก: ฟอร์ม, ส่ง/ลบผ่าน Apps Script |
+| `js/cards.js` | หน้าการ์ด: โควตา, ฟอร์มย่อยต่อใบ, ส่ง action card |
 | `css/site.css` | สไตล์ทั้งหมด mobile-first รองรับ dark mode |
 
 ## Backend / ฐานข้อมูล — ใช้ของ Google ทั้งหมด

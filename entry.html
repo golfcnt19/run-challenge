@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>กรอกผล · การ์ด — Run Challenge</title>
+<title>กรอกผล — Run Challenge</title>
 <meta name="theme-color" content="#4f46e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -20,8 +20,8 @@
 
 <header class="hero hero-compact">
   <div class="wrap">
-    <a class="back" href="./">‹ ตารางคะแนน</a>
-    <h1>✏️ กรอกผล · 🃏 การ์ด</h1>
+    <div class="hero-links"><a class="back" href="./">‹ ตารางคะแนน</a><a class="back" href="cards.html">🃏 การ์ดพิเศษ ›</a></div>
+    <h1>✏️ กรอกผล</h1>
     <p class="hero-range" id="range">—</p>
   </div>
 </header>
@@ -47,21 +47,7 @@
     </div>
   </div>
 
-  <nav class="tabs" role="tablist" aria-label="โหมด">
-    <button class="tab is-active" role="tab" data-mode="entry" aria-selected="true">✏️ กรอกผล</button>
-    <button class="tab" role="tab" data-mode="cards" aria-selected="false">🃏 การ์ดพิเศษ</button>
-  </nav>
-
   <p class="empty" id="no-team">เลือกทีมด้านบนก่อน</p>
-
-  <div class="card" id="cards-card" hidden>
-    <div class="track-head"><h2>🃏 การ์ดพิเศษ <span id="cards-team"></span></h2><small id="cards-week"></small></div>
-    <p class="hint">วีคละ 3 ใบ (ชนิดละใบ) · วันละ 1 ใบ · ใช้กับวันนี้เท่านั้น · ใช้แล้วยกเลิกไม่ได้</p>
-    <div class="card-grid" id="card-grid"></div>
-    <div class="card-form" id="card-form" hidden></div>
-    <div class="alert" id="card-error" hidden></div>
-    <div class="card-done" id="card-done" hidden></div>
-  </div>
 
   <form class="card form" id="form" novalidate>
     <label class="field">
