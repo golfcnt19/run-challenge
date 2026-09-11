@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtwrgvxb";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwrgvxb";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwrgvxb";
-import { USE_SAMPLE } from "./config.js?v=mtwrgvxb";
+import { loadAll } from "./sheets.js?v=mtwryrz4";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwryrz4";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwryrz4";
+import { USE_SAMPLE } from "./config.js?v=mtwryrz4";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -239,7 +239,7 @@ function renderRules(r) {
 function cardTitle(c) {
   if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : " (ไม่มีส่วนเกิน)"}`;
   if (c.card === "x2") return `✖️2 ${c.runner}`;
-  return `🛡️ block ${c.target} (${c.targetTeam.id})`;
+  return c.revealed ? `🛡️ block ${c.target} (${c.targetTeam.id})` : "🛡️ block — เฉลยพรุ่งนี้";
 }
 
 function renderDaySummary(teams, days) {
