@@ -141,6 +141,14 @@ async function submit(e) {
   if (!payload.runner) return showError("เลือกชื่อ");
   if (!payload.date) return showError("เลือกวันที่");
   if (!(Number(payload.amount) > 0)) return showError("ใส่จำนวนให้ถูกต้อง");
+  // กันมือลั่น: รายการเหมือนเดิมเป๊ะ (คน+วัน+กิจกรรม+จำนวน) มีอยู่แล้ว → ถามยืนยันก่อน
+  const dup = entries.find((x) => x.runner === payload.runner && x.date === payload.date && x.activity === activity && Math.abs(Number(x.amount) - Number(payload.amount)) < 0.005);
+  if (dup) {
+    const a = ACTIVITIES[activity];
+    if (!confirm(`${payload.runner} มีรายการ ${a.label} ${fmtNum(payload.amount, activity === "walk" ? 0 : 2)} ${a.unit} ของวัน ${fmtDateShort(payload.date)} อยู่แล้ว
+
+กรอกซ้ำจริงใช่ไหม?`)) return;
+  }
 
   const btn = $("submit");
   btn.disabled = true;
