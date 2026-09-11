@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx65mxo";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx65mxo";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx65mxo";
-import { USE_SAMPLE } from "./config.js?v=mtx65mxo";
+import { loadAll } from "./sheets.js?v=mtx68zzo";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx68zzo";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx68zzo";
+import { USE_SAMPLE } from "./config.js?v=mtx68zzo";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -227,10 +227,6 @@ function renderBoard(teams, rules) {
         <div class="badge">${esc(t.id)}</div>
         <div>
           <div class="team-name">${esc(t.name)}</div>
-          <div class="team-sub">
-            <span>${t.activeMembers}/${t.members.length} คนส่งผล</span>
-            <span>${t.entries} รายการ</span>
-          </div>
         </div>
         <div class="team-pts"><b data-count="${t.pts}">${fmtPts(t.pts)}</b><small>คะแนน</small></div>
         ${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}
@@ -470,7 +466,7 @@ function renderTeam(t) {
   if (!t) return ($("team-detail").innerHTML = `<p class="empty">ไม่มีข้อมูลทีม</p>`);
   const { rules, daysElapsed } = state;
   const maxPerRunner = rules.dailyCap * daysElapsed;
-  const act = (a, digits = 0) => (t.byActivity[a] ? `${fmtNum(t.byActivity[a], digits)}` : "0");
+  const sum = (a, digits = 0) => (t.byActivity[a] ? `${fmtNum(t.byActivity[a], digits)}` : "0"); // ยอดรวมต่อกิจกรรมของทีม
   const sportMin = ["badminton", "tennis", "football", "swim", "basketball"].reduce((s, k) => s + (t.byActivity[k] || 0), 0);
 
   const runners = t.runners
@@ -500,14 +496,14 @@ function renderTeam(t) {
     <div class="card" style="--team:${esc(t.color)}">
       <div class="team-head">
         <div class="badge">${esc(t.id)}</div>
-        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน</small></div>
+        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน · ส่งผลแล้ว ${t.activeMembers}/${t.members.length} คน</small></div>
         <div class="pts"><b>${fmtPts(t.pts)}</b><small>คะแนน</small></div>
       </div>
       <div class="stat-row">
-        <div class="stat"><b>${act("run", 1)}</b><small>🏃 วิ่งสวน กม.</small></div>
-        <div class="stat"><b>${act("treadmill", 1)}</b><small>🏃‍♂️ วิ่งลู่ กม.</small></div>
-        <div class="stat"><b>${act("walk")}</b><small>🚶 เดิน ก้าว</small></div>
-        <div class="stat"><b>${act("bike", 1)}</b><small>🚴 ปั่น กม.</small></div>
+        <div class="stat"><b>${sum("run", 1)}</b><small>🏃 วิ่งสวน กม.</small></div>
+        <div class="stat"><b>${sum("treadmill", 1)}</b><small>🏃‍♂️ วิ่งลู่ กม.</small></div>
+        <div class="stat"><b>${sum("walk")}</b><small>🚶 เดิน ก้าว</small></div>
+        <div class="stat"><b>${sum("bike", 1)}</b><small>🚴 ปั่น กม.</small></div>
         ${sportMin ? `<div class="stat"><b>${fmtNum(sportMin)}</b><small>🏸⚽🏊 กีฬา นาที</small></div>` : ""}
       </div>
     </div>
