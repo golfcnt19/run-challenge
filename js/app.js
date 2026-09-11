@@ -392,11 +392,11 @@ document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () 
 $("refresh").addEventListener("click", refresh);
 $("track-mode").addEventListener("click", (e) => {
   const b = e.target.closest("[data-v]");
-  if (!b || !state) return;
+  if (!b) return;
   trackMode = b.dataset.v;
   try { localStorage.setItem("rc-track", trackMode); } catch {}
   document.querySelectorAll("#track-mode button").forEach((x) => x.classList.toggle("is-active", x.dataset.v === trackMode));
-  renderTrack(state.teams, state.rules);
+  if (state) renderTrack(state.teams, state.rules); // ถ้ากดก่อนโหลดเสร็จ จะวาดตามโหมดที่เลือกตอนโหลดเสร็จเอง
 });
 $("board").addEventListener("click", (e) => openTeam(e.target.closest("[data-team]")));
 $("board").addEventListener("keydown", (e) => e.key === "Enter" && openTeam(e.target.closest("[data-team]")));
