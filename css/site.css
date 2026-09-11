@@ -369,3 +369,15 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .axis-break { position: absolute; left: calc(var(--label-w) - 6px); top: 0; bottom: 18px; display: flex; align-items: center; color: var(--muted); font-size: 0.9rem; letter-spacing: -1px; pointer-events: none; }
 .finish.is-far { opacity: 0.3; }
 .finish.is-far::after { opacity: 1; }
+
+/* ── clearer rank marks ───────────────────────────── */
+.team-card .rank { width: 36px; font-size: 1.6rem; line-height: 1; }
+.team-card .rank.r4, .team-card .rank.r5, .team-card .rank.r6, .team-card .rank.r7 {
+  font-size: 1rem; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-2); color: var(--text); border: 1.5px solid var(--line);
+}
+.lane-rank { width: 26px; font-size: 1.2rem; }
+.lane-rank-n {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface-2); color: var(--text); border: 1.5px solid var(--line); font-size: 0.78rem;
+}
