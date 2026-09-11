@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th" data-v="mtx2hiax">
+<html lang="th" data-v="mtx34jjj">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/site.css?v=mtx2hiax">
+<link rel="stylesheet" href="css/site.css?v=mtx34jjj">
 </head>
 <body>
 
@@ -28,6 +28,7 @@
     <div class="progress">
       <div class="progress-bar"><span id="progress-fill" style="width:0%"></span></div>
       <div class="progress-meta"><span id="progress-text">—</span><span id="progress-days">—</span></div>
+      <div class="countdown" id="countdown" hidden></div>
     </div>
     <p class="updated"><span id="updated">กำลังโหลด…</span></p>
     <div class="hero-actions">
@@ -53,14 +54,19 @@
 
   <!-- อันดับทีม -->
   <section class="panel" id="panel-board" role="tabpanel">
+    <div class="podium-card card" id="podium" hidden></div>
+    <div class="celebrate" id="celebrate" hidden></div>
     <div class="reveal" id="reveal" hidden></div>
     <ol class="board" id="board"></ol>
     <div class="card track-card">
       <div class="track-head">
         <h2>🏁 สนามแข่ง</h2>
-        <div class="seg seg-mini" id="track-mode" role="radiogroup">
-          <button type="button" data-v="zoom" class="is-active">🔍 ซูม</button>
-          <button type="button" data-v="full">🏁 เต็มสนาม</button>
+        <div class="track-tools">
+          <button type="button" class="btn-replay" id="track-replay" title="ย้อนดูการแข่งตั้งแต่วันแรก">▶ ย้อนดู</button>
+          <div class="seg seg-mini" id="track-mode" role="radiogroup">
+            <button type="button" data-v="zoom" class="is-active">🔍 ซูม</button>
+            <button type="button" data-v="full">🏁 เต็มสนาม</button>
+          </div>
         </div>
       </div>
       <small class="track-note" id="track-note"></small>
@@ -77,6 +83,8 @@
     <details class="card rules-card" open>
       <summary><h2>📋 กติกา</h2></summary>
       <ul class="rules" id="rules"></ul>
+      <p class="rules-lead" style="margin-top:10px">🏷️ <b>ป้ายพิเศษ</b> — ให้ทีมที่เข้าเงื่อนไขมากที่สุด (เสมอกันได้ทุกทีม) ทีมหนึ่งได้หลายป้ายได้ · คำนวณใหม่ทุกวัน</p>
+      <ul class="rules" id="badges-rules"></ul>
     </details>
   </section>
 
@@ -110,7 +118,7 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script type="module" src="js/version-check.js?v=mtx2hiax"></script>
-<script type="module" src="js/app.js?v=mtx2hiax"></script>
+<script type="module" src="js/version-check.js?v=mtx34jjj"></script>
+<script type="module" src="js/app.js?v=mtx34jjj"></script>
 </body>
 </html>

@@ -493,3 +493,46 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .seg.seg-mini { display: inline-flex; grid-template-columns: none; gap: 0; background: var(--surface-2); border-radius: 999px; padding: 3px; }
 .seg.seg-mini button { display: inline-block; padding: 7px 16px; font-size: 0.85rem; font-weight: 600; border: 0; border-radius: 999px; line-height: 1.4; background: transparent; color: var(--muted); white-space: nowrap; }
 .seg.seg-mini button.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+
+/* ── wow: countdown ───────────────────────────────── */
+.countdown { margin-top: 10px; display: flex; align-items: baseline; gap: 8px; }
+.countdown b { font-size: 2rem; line-height: 1; font-weight: 800; }
+.countdown span { font-size: 0.85rem; opacity: 0.9; }
+.countdown.is-final b { color: #ffd166; animation: pulse 1.2s ease-in-out infinite; }
+.countdown.is-final span { color: #ffd166; font-weight: 600; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+/* ── wow: celebrate banner ────────────────────────── */
+.celebrate { position: relative; overflow: hidden; background: linear-gradient(135deg, #fff7d6, #ffe9f3); color: #5a3b00; border-radius: var(--radius); padding: 12px 14px; margin: 12px 0; box-shadow: var(--shadow); font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+@media (prefers-color-scheme: dark) { .celebrate { background: linear-gradient(135deg, #3a2f0f, #3a1a2e); color: #ffe08a; } }
+.celebrate .ev { display: inline-flex; align-items: center; gap: 6px; }
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+.confetti i { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation: fall 2.2s linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; } }
+
+/* ── wow: replay ──────────────────────────────────── */
+.track-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-replay { border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 6px 12px; font-size: 0.82rem; font-weight: 600; }
+.btn-replay[disabled] { opacity: 0.5; cursor: wait; }
+.track.is-replay .runner-dot { transition: left 0.28s linear; }
+.replay-day { text-align: center; font-size: 0.85rem; color: var(--accent); font-weight: 700; min-height: 1.4em; }
+
+/* ── wow: team badges ─────────────────────────────── */
+.tag.badge-fun { background: color-mix(in srgb, var(--team) 14%, var(--surface)); color: var(--text); }
+
+/* ── wow: podium (จบกิจกรรม) ───────────────────────── */
+.podium-card { text-align: center; background: linear-gradient(160deg, #fff8e1, #fff 60%); }
+@media (prefers-color-scheme: dark) { .podium-card { background: linear-gradient(160deg, #3a2f0f, var(--surface) 60%); } }
+.podium-card h2 { font-size: 1.3rem; margin-bottom: 4px; }
+.podium-card .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 14px; }
+.podium { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; align-items: end; }
+.podium .step { border-radius: 12px 12px 4px 4px; padding: 10px 6px 12px; color: #fff; display: grid; gap: 4px; justify-items: center; }
+.podium .step .medal { font-size: 2rem; line-height: 1; }
+.podium .step .badge { width: 44px; height: 44px; font-size: 1.2rem; box-shadow: 0 0 0 3px rgba(255,255,255,0.6); }
+.podium .step b { font-size: 1.3rem; }
+.podium .step small { opacity: 0.9; font-size: 0.75rem; }
+.podium .s1 { background: linear-gradient(180deg, #f3c53c, #c9961a); min-height: 170px; }
+.podium .s2 { background: linear-gradient(180deg, #b8c2d6, #8f9bb3); min-height: 140px; }
+.podium .s3 { background: linear-gradient(180deg, #d19a5b, #b5722a); min-height: 120px; }
+.podium-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 14px; }
+.podium-stats .stat b { font-size: 1.1rem; }

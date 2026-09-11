@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx2hiax";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx2hiax";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx2hiax";
-import { USE_SAMPLE } from "./config.js?v=mtx2hiax";
+import { loadAll } from "./sheets.js?v=mtx34jjj";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx34jjj";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx34jjj";
+import { USE_SAMPLE } from "./config.js?v=mtx34jjj";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -56,6 +56,9 @@ function render(loadedAt) {
   $("warn-count").textContent = warnings.length;
   $("warn-list").innerHTML = warnings.map((w) => `<li>${esc(w)}</li>`).join("");
 
+  renderCountdown(rules, daysLeft, today);
+  renderPodium(teams, rules);
+  renderCelebrate();
   renderReveal();
   renderTrack(teams, rules);
   renderBoard(teams, rules);
@@ -68,6 +71,122 @@ function render(loadedAt) {
   renderTeam(teams.find((t) => t.id === selectedTeam));
   $("foot-note").textContent = `${teams.length} ทีม · ${state.runners.length} คน · ${state.entries.length} รายการ`;
 }
+
+// ป้ายสนุก ๆ ต่อทีม (คำนวณใน scoring.js)
+const BADGES = {
+  early:   { label: "🐦 ทีมตื่นเช้า",    title: "สัดส่วนกรอกผลก่อน 8:00 สูงสุด (อย่างน้อย 30% จาก 10 รายการขึ้นไป)" },
+  night:   { label: "🦉 ทีมกลางคืน",    title: "สัดส่วนกรอกผลหลัง 21:00 สูงสุด (อย่างน้อย 30% จาก 10 รายการขึ้นไป)" },
+  stage:   { label: "🏆 นักล่าสเตจ",    title: "ชนะรายวัน (🏆) มากที่สุด อย่างน้อย 2 วัน" },
+  sharp:   { label: "🎯 การ์ดแม่น",     title: "ใช้การ์ดแล้วได้ผลทุกใบ ไม่มีใบเสียเปล่า (อย่างน้อย 2 ใบ) มากที่สุด" },
+  blocked: { label: "🛡️ เป้าสายตา",     title: "โดน block มากที่สุด (อย่างน้อย 2 ครั้ง)" },
+  steady:  { label: "🔁 ทีมสม่ำเสมอ",   title: "สมาชิกที่ส่งผลเกิน 80% ของวันมีมากที่สุด (อย่างน้อย 3 คน หลังผ่านไป 5 วัน)" },
+};
+
+// นับถอยหลังตัวใหญ่ในแบนเนอร์ 3 วันสุดท้ายเปลี่ยนเป็นสีทองกระพริบ
+function renderCountdown(rules, daysLeft, today) {
+  const el = $("countdown");
+  if (today < rules.startDate || today > rules.endDate) return (el.hidden = true);
+  const final = daysLeft <= 3;
+  el.className = "countdown" + (final ? " is-final" : "");
+  el.innerHTML = daysLeft === 0
+    ? `<b>วันสุดท้าย!</b><span>🔥 วิ่งให้สุด</span>`
+    : `<b>${daysLeft}</b><span>${final ? "🔥 วันสุดท้าย — เร่งเลย!" : "วันที่เหลือ"}</span>`;
+  el.hidden = false;
+}
+
+// โพเดียมเมื่อจบกิจกรรม (วันนี้ > end_date)
+function renderPodium(teams, rules) {
+  const el = $("podium");
+  if (!state.finished || !teams.length) return (el.hidden = true);
+  const top = teams.slice(0, 3);
+  const order = [top[1], top[0], top[2]].filter(Boolean); // 2-1-3
+  const cls = { 1: "s1", 2: "s2", 3: "s3" };
+  const medal = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const mvp = state.runners[0];
+  const totalKm = state.entries.filter((e) => ["run", "treadmill", "bike"].includes(e.activity)).reduce((s, e) => s + e.amount, 0);
+  const totalSteps = state.entries.filter((e) => e.activity === "walk").reduce((s, e) => s + e.amount, 0);
+  const bestDay = [...state.dayStats].sort((a, b) => b.total - a.total)[0];
+  el.innerHTML = `
+    <h2>🏁 จบกิจกรรมแล้ว!</h2>
+    <p class="sub">${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)} · ${state.totalDays} วัน · ${state.entries.length} รายการ</p>
+    <div class="podium">${order.map((t) => `
+      <div class="step ${cls[t.rank]}" style="--team:${esc(t.color)}">
+        <span class="medal">${medal[t.rank]}</span>
+        <span class="badge">${esc(t.id)}</span>
+        <b>${fmtPts(t.pts)}</b><small>${esc(t.name)}</small>
+      </div>`).join("")}</div>
+    <div class="podium-stats">
+      <div class="stat"><b>${mvp ? esc(mvp.name) : "–"}</b><small>⭐ MVP ${mvp ? fmtPts(mvp.pts) + " คะแนน" : ""}</small></div>
+      <div class="stat"><b>${fmtNum(totalKm)}</b><small>กม. รวมทุกคน</small></div>
+      <div class="stat"><b>${fmtNum(totalSteps)}</b><small>ก้าว รวมทุกคน</small></div>
+      <div class="stat"><b>${state.cards.length}</b><small>🃏 การ์ดที่ใช้</small></div>
+      ${bestDay ? `<div class="stat"><b>${fmtDateShort(bestDay.date)}</b><small>วันที่มันสุด ${fmtPts(bestDay.total)} คะแนน</small></div>` : ""}
+    </div>`;
+  el.hidden = false;
+}
+
+// ฉลองเหตุการณ์เด่นของวันล่าสุด — โชว์ครั้งเดียวต่อเหตุการณ์ต่อเครื่อง (localStorage) พร้อม confetti
+function renderCelebrate() {
+  const el = $("celebrate");
+  const evs = state.events || [];
+  if (!evs.length) return (el.hidden = true);
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem("rc-seen-events") || "[]"); } catch {}
+  const fresh = evs.filter((e) => !seen.includes(e.key));
+  el.innerHTML = evs.map((e) => `<span class="ev">${e.icon} ${esc(e.text)}</span>`).join("");
+  el.hidden = false;
+  if (!fresh.length) return;
+  try { localStorage.setItem("rc-seen-events", JSON.stringify([...seen, ...fresh.map((e) => e.key)].slice(-50))); } catch {}
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const box = document.createElement("div");
+  box.className = "confetti";
+  const colors = ["#f3c53c", "#e63946", "#4f46e5", "#2a9d8f", "#d0367a", "#f4a261"];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement("i");
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = Math.random() * 0.8 + "s";
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    box.appendChild(p);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 3200);
+}
+
+// ย้อนดูสนามแข่ง: เล่นตำแหน่งตั้งแต่วันแรกถึงวันนี้ ทีละวัน
+let replaying = false;
+async function replayTrack() {
+  if (replaying || !state.days.length) return;
+  replaying = true;
+  const btn = $("track-replay");
+  btn.disabled = true;
+  const track = $("track");
+  track.classList.add("is-replay");
+  let label = track.querySelector(".replay-day");
+  if (!label) { label = document.createElement("div"); label.className = "replay-day"; track.appendChild(label); }
+  const teams = state.teams;
+  const { totalDays } = state;
+  const members = Math.max(1, ...teams.map((t) => t.members.length));
+  const finish = members * state.rules.dailyCap * totalDays;
+  const dots = new Map([...track.querySelectorAll(".lane")].map((l) => [l.dataset.team, l.querySelector(".runner-dot")]));
+  // ใช้สเกลของโหมดปัจจุบัน: full = ÷เส้นชัย, zoom = ช่วงคะแนนสุดท้าย
+  const leader = Math.max(0, ...teams.map((t) => t.pts)), lowest = Math.min(...teams.map((t) => t.pts));
+  const zoom = trackMode === "zoom" && leader > 0;
+  let lo = 0, hi = finish;
+  if (zoom) { const span = Math.max(leader - lowest, leader * 0.15, 1); lo = 0; hi = leader + span * 0.35; }
+  const pos = (v) => Math.min(97, Math.max(0, ((v - lo) / (hi - lo)) * 100));
+  const stepMs = Math.max(80, Math.min(300, 3000 / state.days.length));
+  for (let i = 0; i < state.days.length; i++) {
+    label.textContent = `วันที่ ${i + 1} · ${fmtDateShort(state.days[i])}`;
+    for (const t of teams) { const d = dots.get(t.id); if (d) d.style.left = pos(t.cumulative[i]) + "%"; }
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+  label.textContent = "";
+  track.classList.remove("is-replay");
+  btn.disabled = false;
+  replaying = false;
+}
+$("track-replay").addEventListener("click", replayTrack);
 
 // แถบเฉลย block ของเมื่อวาน (วันล่าสุดที่เฉลยแล้ว) — เห็นทันทีว่าใครโดน ใครทำ เสียเท่าไร
 function renderReveal() {
@@ -93,6 +212,7 @@ function renderBoard(teams, rules) {
       if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
       if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
       else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
+      for (const bk of t.badges || []) tags.push(`<span class="tag badge-fun" title="${BADGES[bk].title}">${BADGES[bk].label}</span>`);
       return `
       <li class="team-card ${t.pts > 0 && t.rank <= 3 ? `is-top top${t.rank}` : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
         <div class="rank r${t.rank}">${medal}</div>
@@ -158,7 +278,7 @@ function renderTrack(teams, rules) {
     .map((t) => {
       const pct = pos(t.pts);
       const rankMark = t.pts > 0 && t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : `<span class="lane-rank-n">${t.rank}</span>`;
-      return `<div class="lane ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}">
+      return `<div class="lane ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" data-team="${esc(t.id)}" style="--team:${esc(t.color)}">
         <div class="lane-label"><span class="lane-rank">${rankMark}</span><span class="dot-badge">${esc(t.id)}</span><span class="lane-pts">${fmtPts(t.pts)}</span></div>
         <div class="lane-run">
           <div class="lane-line"></div>
@@ -231,6 +351,7 @@ function renderRules(r) {
     <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
     <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</li>
     <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
+  $("badges-rules").innerHTML = Object.values(BADGES).map((b) => `<li><b>${b.label}</b> — ${b.title}</li>`).join("");
 }
 
 // ── รายวัน ─────────────────────────────────────────────────────────

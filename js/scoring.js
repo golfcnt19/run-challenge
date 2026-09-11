@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx2hiax";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx34jjj";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -54,6 +54,7 @@ export const CARDS = {
 };
 export const CARD_TYPES = Object.keys(CARDS);
 // ใช้แทน ACTIVITIES[x] ตรง ๆ — คืนค่า placeholder ถ้าไม่รู้จัก จะได้ไม่พังทั้งหน้าเพราะแถวเดียว
+const fmtP = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
 export const act = (k) => ACTIVITIES[k] || { label: k || "?", unit: "", icon: "❔" };
 
 // วันจันทร์ของสัปดาห์ที่วันนั้นอยู่ (วีคเริ่มจันทร์) — สูตรเดียวกับ Code.gs
@@ -147,7 +148,8 @@ export function computeScores(data, today = todayIso()) {
     if (!activity) return warnings.push(`แถว ${line}: ไม่รู้จักกิจกรรม "${r.activity}"`);
     if (!Number.isFinite(amount) || amount <= 0) return warnings.push(`แถว ${line}: จำนวน "${r.amount}" ไม่ถูกต้อง`);
     if (date < rules.startDate || date > rules.endDate) return warnings.push(`แถว ${line}: วันที่ ${date} อยู่นอกช่วงกิจกรรม (ไม่นับ)`);
-    entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules) });
+    const hh = /(d{1,2}):d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
+    entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null });
   });
 
   // --- รวมต่อคนต่อวัน แล้วตัดเพดาน ---
@@ -339,8 +341,44 @@ export function computeScores(data, today = todayIso()) {
   const cardsByDate = {};
   for (const c of cards) if (c.revealed) (cardsByDate[c.date] ||= []).push(c);
 
+  // --- ป้ายสนุก ๆ ต่อทีม (badges) ---
+  const badges = {};
+  const teamEntries = (t) => entries.filter((e) => e.team.id === t.id);
+  // ทีมที่ค่าสูงสุด (เสมอกันได้ป้ายทุกทีม) และต้องถึงขั้นต่ำ
+  const pickMax = (key, fn, min = 1) => {
+    const vals = teamStats.map((t) => [t, fn(t)]);
+    const top = Math.max(...vals.map(([, v]) => v));
+    if (top < min) return;
+    for (const [t, v] of vals) if (Math.abs(v - top) < 1e-9) (badges[t.id] ||= []).push(key);
+  };
+  pickMax("early", (t) => { const es = teamEntries(t).filter((e) => e.hour !== null); return es.length >= 10 ? es.filter((e) => e.hour < 8).length / es.length : -1; }, 0.3);
+  pickMax("night", (t) => { const es = teamEntries(t).filter((e) => e.hour !== null); return es.length >= 10 ? es.filter((e) => e.hour >= 21).length / es.length : -1; }, 0.3);
+  pickMax("stage", (t) => t.stageWins, 2);
+  pickMax("sharp", (t) => { const used = cards.filter((c) => c.team.id === t.id && c.effect !== null); return used.length >= 2 && used.every((c) => c.effect !== 0) ? used.length : -1; }, 2);
+  pickMax("blocked", (t) => cards.filter((c) => c.card === "block" && c.revealed && c.targetTeam.id === t.id && !c.stacked).length, 2);
+  pickMax("steady", (t) => days.length >= 5 ? t.runners.filter((r) => r.daysActive >= days.length * 0.8).length : -1, 3);
+  for (const t of teamStats) t.badges = badges[t.id] || [];
+
+  // --- เหตุการณ์เด่นของวันล่าสุด (สำหรับฉลอง) ---
+  const events = [];
+  const lastIdx = days.length - 1;
+  if (lastIdx >= 1) {
+    const prevLeader = [...teamStats].sort((a, b) => b.prevPts - a.prevPts)[0];
+    if (prevLeader && teamStats[0].id !== prevLeader.id && teamStats[0].pts > 0) events.push({ key: `leader-${days[lastIdx]}-${teamStats[0].id}`, icon: "👑", text: `${teamStats[0].name} แซงขึ้นเป็นผู้นำ!` });
+  }
+  for (const c of cards) if (c.card === "x2" && c.date === days[lastIdx] && c.effect >= rules.dailyCap) events.push({ key: `x2max-${c.date}-${c.runner}`, icon: "✖️2", text: `${c.runner} (${c.team.name}) ใช้ x2 ได้เต็ม ${fmtP(rules.dailyCap * 2)} คะแนน!` });
+  for (const t of teamStats) {
+    let streak = 0;
+    for (let i = lastIdx; i >= 0 && dayStats[i].winners.includes(t); i--) streak++;
+    if (streak >= 3) events.push({ key: `streak-${days[lastIdx]}-${t.id}`, icon: "🏆", text: `${t.name} ชนะวันติดกัน ${streak} วัน!` });
+  }
+  for (const c of cards) if (c.card === "block" && c.revealed && c.date === days[lastIdx - 1] && c.effect <= -rules.dailyCap * 2) events.push({ key: `bigblock-${c.date}-${c.target}`, icon: "🛡️", text: `${c.team.name} block ${c.target} ตัดไป ${fmtP(-c.effect)} คะแนน!` });
+
   const totalDays = daysInclusive(rules.startDate, rules.endDate);
+  const finished = today > rules.endDate;
   return {
+    finished,
+    events,
     cards,
     cardsByDate,
     cardState,
