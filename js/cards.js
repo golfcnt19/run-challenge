@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mtwrflwc";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtwrflwc";
-import { fmtDateLong } from "./format.js?v=mtwrflwc";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtwrflwc";
-import { ENTRY_URL } from "./config.js?v=mtwrflwc";
+import { loadAll } from "./sheets.js?v=mtwrgvxb";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtwrgvxb";
+import { fmtDateLong } from "./format.js?v=mtwrgvxb";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtwrgvxb";
+import { ENTRY_URL } from "./config.js?v=mtwrgvxb";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,7 +21,7 @@ let pickedCard = null;
 let teamId = store.get(LS.team) || "";
 let scored = null;
 let doneFor = null; // ทีมที่กล่อง "ใช้แล้ว" เป็นของ — สลับทีมแล้วซ่อน // ผล computeScores ล่าสุด (ใช้วาดประวัติ)
-let histScope = "week", histTeam = "all";
+let histScope = "week", histTeam = "mine"; // ค่าเริ่มต้น: วีคนี้ · เฉพาะทีมที่เลือก
 
 async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
@@ -67,7 +67,8 @@ function renderHistory() {
   document.querySelectorAll("#hist-team button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === histTeam));
   const thisWeek = weekKey(todayIso());
   let list = scored.cards.filter((c) => histScope === "all" || c.week === thisWeek);
-  if (histTeam === "mine" && teamId) list = list.filter((c) => c.team.id === teamId || (c.card === "block" && c.revealed && c.targetTeam.id === teamId));
+  const mineActive = histTeam === "mine" && teamId;
+  if (mineActive) list = list.filter((c) => c.team.id === teamId || (c.card === "block" && c.revealed && c.targetTeam.id === teamId));
   list = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   // สรุปต่อทีม: ได้จากการ์ด / โดน block / สุทธิ (ในขอบเขตที่เลือก)
@@ -79,14 +80,14 @@ function renderHistory() {
     if (c.card === "block") sum[c.targetTeam.id].loss += c.effect;
     else sum[c.team.id].gain += c.effect;
   }
-  const rows = [...teams].sort((x, y) => x.id.localeCompare(y.id)).map((t) => {
+  const rows = [...teams].filter((t) => !mineActive || t.id === teamId).sort((x, y) => x.id.localeCompare(y.id)).map((t) => {
     const s = sum[t.id], net = s.gain + s.loss;
     return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td><td>${s.used}</td><td class="up">${s.gain ? signed(s.gain) : "–"}</td><td class="down">${s.loss ? signed(s.loss) : "–"}</td><td><b>${net ? signed(net) : "–"}</b></td></tr>`;
   }).join("");
   $("card-summary").innerHTML = `<thead><tr><th>ทีม</th><th>ใช้</th><th>ได้จากการ์ด</th><th>โดน block</th><th>สุทธิ</th></tr></thead><tbody>${rows}</tbody>`;
 
   // รายการ จัดกลุ่มตามวีค
-  if (!list.length) return ($("card-history").innerHTML = `<p class="empty">ยังไม่มีการใช้การ์ด${histScope === "week" ? "ในวีคนี้" : ""}</p>`);
+  if (!list.length) return ($("card-history").innerHTML = `<p class="empty">${mineActive ? `ทีม ${teamId} ยังไม่ได้ใช้/โดนการ์ด` : "ยังไม่มีการใช้การ์ด"}${histScope === "week" ? "ในวีคนี้" : ""}</p>`);
   const groups = new Map();
   for (const c of list) (groups.get(c.week) || groups.set(c.week, []).get(c.week)).push(c);
   $("card-history").innerHTML = [...groups.entries()].map(([wk, cs]) => `
