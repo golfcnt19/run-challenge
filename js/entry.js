@@ -1,6 +1,6 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
 import { loadAll } from "./sheets.js";
-import { computeScores, ACTIVITIES } from "./scoring.js";
+import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js";
 import { fmtDateShort, fmtNum, todayIso } from "./format.js";
 import { ENTRY_URL } from "./config.js";
 
@@ -85,6 +85,23 @@ function renderRecent() {
   $("recent-list").innerHTML = mine.length ? mine.map(([e, i]) => entryHtml(e, i)).join("") : `<li class="empty">ยังไม่มีรายการ</li>`;
 }
 
+// คะแนน (หลังตัดเพดาน) ที่คนนั้นมีอยู่แล้วในวันนั้น
+function dayPoints(runner, date) {
+  const raw = entries.filter((x) => x.runner === runner && x.date === date).reduce((s, x) => s + rawPoints(x.activity, x.amount, rules), 0);
+  return Math.min(raw, rules.dailyCap);
+}
+function renderDayHint() {
+  const el = $("day-hint");
+  const runner = $("runner").value, date = $("date").value;
+  if (!rules || !runner || !date) return (el.hidden = true);
+  const p = dayPoints(runner, date);
+  el.hidden = false;
+  el.className = "hint day-hint" + (p >= rules.dailyCap ? " is-full" : "");
+  el.textContent = p >= rules.dailyCap
+    ? `${runner} ได้ครบ ${rules.dailyCap} คะแนนของวัน ${fmtDateShort(date)} แล้ว — กรอกเพิ่มไม่ได้`
+    : `${runner} วันนี้ได้แล้ว ${fmtNum(p, 2)} / ${rules.dailyCap} คะแนน`;
+}
+
 function setActivity(v) {
   activity = v;
   document.querySelectorAll("#activity button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === v));
@@ -124,6 +141,8 @@ async function submit(e) {
   if (!payload.runner) return showError("เลือกชื่อ");
   if (!payload.date) return showError("เลือกวันที่");
   if (!(Number(payload.amount) > 0)) return showError("ใส่จำนวนให้ถูกต้อง");
+  if (rules && dayPoints(payload.runner, payload.date) >= rules.dailyCap)
+    return showError(`${payload.runner} ได้ครบ ${rules.dailyCap} คะแนนของวันนั้นแล้ว กรอกเพิ่มไม่ได้`);
 
   const btn = $("submit");
   btn.disabled = true;
@@ -134,6 +153,7 @@ async function submit(e) {
     store.set(LS.team, payload.team_id);
     entries.unshift({ ...out.entry, teamId: payload.team_id });
     renderRecent();
+    renderDayHint();
     $("amount").value = "";
     $("note").value = "";
     btn.textContent = "✅ บันทึกแล้ว";
@@ -161,6 +181,7 @@ async function remove(idx, btn) {
     if (!out.ok) return showError(out.error || "ลบไม่สำเร็จ", "recent-error");
     entries.splice(idx, 1);
     renderRecent();
+    renderDayHint();
   } catch (err) {
     showError(`ลบไม่สำเร็จ: ${err.message}`, "recent-error");
   } finally {
@@ -191,5 +212,7 @@ $("pin-toggle").addEventListener("click", () => {
   $("pin-toggle").setAttribute("aria-pressed", show);
   $("pin-toggle").setAttribute("aria-label", show ? "ซ่อน PIN" : "แสดง PIN");
 });
+$("runner").addEventListener("change", renderDayHint);
+$("date").addEventListener("change", renderDayHint);
 $("form").addEventListener("submit", submit);
 init();

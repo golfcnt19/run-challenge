@@ -382,3 +382,4 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   background: var(--surface-2); color: var(--text); border: 1.5px solid var(--line); font-size: 0.78rem;
 }
 
+.day-hint.is-full { color: var(--danger); font-weight: 600; }
