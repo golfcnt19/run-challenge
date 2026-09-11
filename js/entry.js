@@ -98,7 +98,7 @@ function renderDayHint() {
   el.hidden = false;
   el.className = "hint day-hint" + (p >= rules.dailyCap ? " is-full" : "");
   el.textContent = p >= rules.dailyCap
-    ? `${runner} ได้ครบ ${rules.dailyCap} คะแนนของวัน ${fmtDateShort(date)} แล้ว — กรอกเพิ่มไม่ได้`
+    ? `${runner} วัน ${fmtDateShort(date)} นับเต็ม ${rules.dailyCap} แล้ว — กรอกเพิ่มได้ (คะแนนทีมไม่เพิ่ม แต่นับชิง ⭐ ดาวประจำวัน)`
     : `${runner} วันนี้ได้แล้ว ${fmtNum(p, 2)} / ${rules.dailyCap} คะแนน`;
 }
 
@@ -141,8 +141,6 @@ async function submit(e) {
   if (!payload.runner) return showError("เลือกชื่อ");
   if (!payload.date) return showError("เลือกวันที่");
   if (!(Number(payload.amount) > 0)) return showError("ใส่จำนวนให้ถูกต้อง");
-  if (rules && dayPoints(payload.runner, payload.date) >= rules.dailyCap)
-    return showError(`${payload.runner} ได้ครบ ${rules.dailyCap} คะแนนของวันนั้นแล้ว กรอกเพิ่มไม่ได้`);
 
   const btn = $("submit");
   btn.disabled = true;

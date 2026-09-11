@@ -124,10 +124,6 @@ function addEntry_(b) {
   if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
   ensureHeaders_(sh);
 
-  // กันกรอกเกินเพดาน: ถ้าวันนั้นคนนี้ได้ครบ daily_cap แล้ว ไม่รับเพิ่ม
-  const cap = parseFloat(config.daily_cap) || 5;
-  const have = dayRawPoints_(sh, member, date, config);
-  if (have >= cap) return { ok: false, error: member + " ได้ครบ " + cap + " คะแนนของวัน " + date + " แล้ว กรอกเพิ่มไม่ได้" };
   // คอลัมน์ date เป็นข้อความ เพื่อไม่ให้ชีตแปลงเป็นวันที่แล้ว export ผิดรูปแบบ
   const stamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"); // เวลาไทยเสมอ ไม่ขึ้นกับ timezone ของโปรเจกต์
   sh.appendRow([date, member, activity, amount, note, stamp, teamId + (isAdmin ? " (admin)" : "")]);
@@ -135,28 +131,6 @@ function addEntry_(b) {
   sh.getRange(row, 1).setNumberFormat("@");
 
   return { ok: true, row: row, entry: { date: date, runner: member, activity: activity, amount: amount, note: note } };
-}
-
-// คะแนนดิบรวมของคน+วัน จากแถวที่มีอยู่ (สูตรเดียวกับ js/scoring.js)
-function dayRawPoints_(sh, member, date, config) {
-  const last = sh.getLastRow();
-  if (last < 2) return 0;
-  const cap = parseFloat(config.daily_cap) || 5;
-  const perKm = parseFloat(config.points_per_run_km) || 1;
-  const walkFull = parseFloat(config.walk_steps_for_full) || 10000;
-  const bikeFull = parseFloat(config.bike_km_for_full) || 20;
-  const rows = sh.getRange(2, 1, last - 1, 4).getValues();
-  let sum = 0;
-  for (const r of rows) {
-    const d = r[0] instanceof Date ? Utilities.formatDate(r[0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(r[0]);
-    if (d !== date || String(r[1]).trim().toLowerCase() !== member.toLowerCase()) continue;
-    const a = normalizeActivity_(r[2]);
-    const n = Number(String(r[3]).replace(/,/g, "")) || 0;
-    if (a === "run" || a === "treadmill") sum += n * perKm;
-    else if (a === "walk") sum += (n / walkFull) * cap;
-    else if (a === "bike") sum += (n / bikeFull) * cap;
-  }
-  return sum;
 }
 
 function ensureHeaders_(sh) {
