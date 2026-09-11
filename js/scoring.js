@@ -159,8 +159,26 @@ export function computeScores(data, today = todayIso()) {
       maxPossible: t.members.length * rules.dailyCap * days.length,
     };
   });
+  const rankOf = (list, key) => {
+    const sorted = [...list].sort((a, b) => b[key] - a[key]);
+    const r = new Map();
+    sorted.forEach((t, i) => r.set(t.id, i > 0 && t[key] === sorted[i - 1][key] ? r.get(sorted[i - 1].id) : i + 1));
+    return r;
+  };
+  const last = days.length - 1;
+  for (const t of teamStats) {
+    t.todayPts = last >= 0 ? t.daily[last] : 0;
+    t.prevPts = last >= 1 ? t.cumulative[last - 1] : 0;
+  }
+  const prevRank = rankOf(teamStats, "prevPts");
   teamStats.sort((a, b) => b.pts - a.pts);
   teamStats.forEach((t, i) => (t.rank = i > 0 && t.pts === teamStats[i - 1].pts ? teamStats[i - 1].rank : i + 1));
+  const hotPts = Math.max(0, ...teamStats.map((t) => t.todayPts));
+  for (const t of teamStats) {
+    t.rankDelta = last >= 1 ? prevRank.get(t.id) - t.rank : 0; // บวก = ขยับขึ้น
+    t.gap = teamStats[0].pts - t.pts;
+    t.hot = hotPts > 0 && t.todayPts === hotPts;
+  }
 
   const totalDays = daysInclusive(rules.startDate, rules.endDate);
   return {

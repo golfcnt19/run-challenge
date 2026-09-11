@@ -238,3 +238,77 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   .chip { padding: 6px 12px; font-size: 0.9rem; }
 }
 @media (min-width: 640px) { .hero-actions { max-width: 380px; } }
+
+/* ── race track ───────────────────────────────────── */
+.track-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.track-head small { color: var(--muted); font-size: 0.75rem; }
+.track { --label-w: 74px; position: relative; padding: 2px 44px 18px 0; }
+.lane { display: grid; grid-template-columns: var(--label-w) 1fr; align-items: center; height: 40px; }
+.lane-label { display: flex; align-items: center; gap: 6px; }
+.lane-label .dot-badge { width: 24px; height: 24px; border-radius: 7px; font-size: 0.75rem; box-shadow: none; }
+.lane-pts { font-size: 0.8rem; font-weight: 600; }
+.lane-run { position: relative; height: 100%; }
+.lane-line {
+  position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, var(--line) 0 10px, transparent 10px 18px);
+}
+.runner-dot {
+  position: absolute; top: 50%; transform: translate(-8%, -50%); z-index: 1;
+  transition: left 1.2s cubic-bezier(0.22, 1, 0.36, 1); will-change: left;
+}
+.dot-badge {
+  display: grid; place-items: center; background: var(--team); color: #fff; font-weight: 700;
+}
+.pace { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--accent); opacity: 0.7; pointer-events: none; z-index: 0; }
+.pace span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.68rem; color: var(--accent); white-space: nowrap; }
+.finish {
+  position: absolute; top: 0; bottom: 18px; right: 30px; width: 12px;
+  background: repeating-conic-gradient(#222 0 25%, #fff 0 50%) 0 0 / 12px 12px;
+  border-radius: 2px; opacity: 0.85;
+}
+.finish::after { content: "🏁"; position: absolute; left: 16px; top: -4px; font-size: 1.1rem; }
+
+
+/* ── momentum tags ────────────────────────────────── */
+.tags { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; margin-top: -4px; }
+.tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-weight: 500; }
+.tag.hot { background: #fff1e6; color: #c2410c; }
+.tag.up { background: #e6f7ee; color: #15803d; }
+.tag.down { background: #fdecec; color: #b3261e; }
+.tag.lead { background: #fff7d6; color: #9a6b00; }
+@media (prefers-color-scheme: dark) {
+  .tag.hot { background: #3a2415; color: #fdba74; }
+  .tag.up { background: #10301c; color: #86efac; }
+  .tag.down { background: #3a1a1a; color: #ff8a80; }
+  .tag.lead { background: #3a2f0f; color: #fde68a; }
+}
+.team-card.is-leader { box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -10px rgba(212, 160, 23, 0.6); }
+
+/* ── top runners ──────────────────────────────────── */
+.top-runners { list-style: none; margin: 0; padding: 0; }
+.top-runners li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.top-runners li:last-child { border-bottom: 0; }
+.tr-medal { font-size: 1.2rem; }
+.tr-name { flex: 1; font-weight: 600; }
+.tr-name small { font-weight: 500; font-size: 0.75rem; margin-left: 4px; }
+.top-runners b { font-size: 1.05rem; }
+
+@media (prefers-reduced-motion: reduce) { .runner-dot { transition: none; } }
+
+/* ── animated sprinter on the track ───────────────── */
+.fig { width: 34px; height: 28px; display: block; animation: bob 0.4s ease-in-out infinite; }
+.sprint { width: 100%; height: 100%; overflow: visible; stroke: var(--team); fill: none; stroke-width: 11; stroke-linecap: round; stroke-linejoin: round; }
+.sprint .head { fill: var(--team); stroke: none; }
+.sprint .speed path { stroke-width: 7; opacity: 0.55; }
+.sprint .speed { animation: speed 0.4s linear infinite; }
+.sprint .p1 { animation: frameA 0.4s steps(1) infinite; }
+.sprint .p2 { animation: frameB 0.4s steps(1) infinite; }
+@keyframes frameA { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes frameB { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes speed { 0% { transform: translateX(6px); opacity: 0.2; } 50% { opacity: 0.7; } 100% { transform: translateX(-8px); opacity: 0.1; } }
+@media (prefers-reduced-motion: reduce) {
+  .fig, .sprint .speed, .sprint .p1, .sprint .p2, .runner-dot { animation: none; transition: none; }
+  .sprint .p2 { display: none; }
+}
+@media (min-width: 640px) { .track { --label-w: 90px; } .lane { height: 44px; } .fig { width: 40px; height: 33px; } }

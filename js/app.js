@@ -46,7 +46,8 @@ function render(loadedAt) {
     $("progress-text").textContent = `ยังไม่เริ่ม — อีก ${left} วัน`;
   } else if (today > rules.endDate) $("progress-text").textContent = "จบกิจกรรมแล้ว 🎉";
   else $("progress-text").textContent = `วันที่ ${daysElapsed} ของ ${totalDays}`;
-  $("progress-days").textContent = `${pct}%`;
+  const daysLeft = Math.max(0, totalDays - daysElapsed);
+  $("progress-days").textContent = today > rules.endDate ? `${pct}%` : `เหลืออีก ${daysLeft} วัน · ${pct}%`;
 
   $("updated").textContent = `อัปเดต ${fmtDateShort(today)} ${fmtTime(loadedAt)}${USE_SAMPLE ? " · ข้อมูลตัวอย่าง" : ""}`;
 
@@ -54,7 +55,9 @@ function render(loadedAt) {
   $("warn-count").textContent = warnings.length;
   $("warn-list").innerHTML = warnings.map((w) => `<li>${esc(w)}</li>`).join("");
 
+  renderTrack(teams, rules);
   renderBoard(teams, rules);
+  renderTopRunners(state.runners);
   renderRules(rules);
   renderDaily(teams, days);
   if (!selectedTeam || !teams.some((t) => t.id === selectedTeam)) selectedTeam = teams[0]?.id;
@@ -69,8 +72,14 @@ function renderBoard(teams, rules) {
     .map((t) => {
       const pct = t.maxPossible ? Math.min(100, (t.pts / t.maxPossible) * 100) : 0;
       const medal = t.pts > 0 && t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : t.rank;
+      const tags = [];
+      if (t.hot) tags.push(`<span class="tag hot">🔥 มาแรงวันนี้ +${fmtPts(t.todayPts)}</span>`);
+      if (t.rankDelta > 0) tags.push(`<span class="tag up">▲ ${t.rankDelta}</span>`);
+      if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
+      if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
+      else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
       return `
-      <li class="team-card" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
+      <li class="team-card ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
         <div class="rank r${t.rank}">${medal}</div>
         <div class="badge">${esc(t.id)}</div>
         <div>
@@ -80,24 +89,80 @@ function renderBoard(teams, rules) {
             <span>${t.entries} รายการ</span>
           </div>
         </div>
-        <div class="team-pts"><b>${fmtPts(t.pts)}</b><small>คะแนน</small></div>
+        <div class="team-pts"><b data-count="${t.pts}">${fmtPts(t.pts)}</b><small>คะแนน</small></div>
+        ${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}
         <div class="team-fill" title="${Math.round(pct)}% ของคะแนนเต็มที่เป็นไปได้"><span style="width:${pct}%"></span></div>
       </li>`;
     })
     .join("");
+  countUp();
 
-  drawChart("chart-board", {
-    type: "bar",
-    data: {
-      labels: teams.map((t) => t.name),
-      datasets: [{ data: teams.map((t) => t.pts), backgroundColor: teams.map((t) => t.color), borderRadius: 6 }],
-    },
-    options: {
-      indexAxis: "y",
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${fmtPts(c.raw)} คะแนน` } } },
-      scales: { x: { beginAtZero: true, grid: { color: gridColor() } }, y: { grid: { display: false } } },
-    },
-  });
+}
+
+// นักวิ่งสปรินต์สไตล์ pictogram + เส้นความเร็ว (viewBox 120×100 หันขวา) สลับขา 2 เฟรมด้วย CSS
+const SPRINT_BODY = "M90 36 L68 62";
+const SPRINT_POSES = [
+  { arms: "M88 38 L108 44 L112 26 M88 38 L72 50 L58 42", legs: "M68 62 L88 70 L94 92 M68 62 L48 76 L28 70" },
+  { arms: "M88 38 L102 30 L116 40 M88 38 L76 46 L62 56", legs: "M68 62 L80 82 L72 98 M68 62 L52 74 L38 88" },
+];
+const runnerSvg = () => `<svg class="sprint" viewBox="0 0 120 100" aria-hidden="true">
+  <g class="speed"><path d="M14 22 H40" /><path d="M4 42 H30" /><path d="M10 62 H36" /><path d="M2 82 H26" /></g>
+  <circle cx="100" cy="22" r="10" class="head"/><path d="${SPRINT_BODY}"/>
+  <g class="pose p1"><path d="${SPRINT_POSES[0].arms}"/><path d="${SPRINT_POSES[0].legs}"/></g>
+  <g class="pose p2"><path d="${SPRINT_POSES[1].arms}"/><path d="${SPRINT_POSES[1].legs}"/></g>
+</svg>`;
+
+// สนามแข่ง: ตำแหน่ง = คะแนน ÷ คะแนนเต็มทั้งกิจกรรม (สเกลจริง วันแรก ๆ ทุกทีมอยู่ต้นสนาม) เส้นประ = วันที่ผ่านไป
+function renderTrack(teams, rules) {
+  const { totalDays, daysElapsed } = state;
+  const members = Math.max(1, ...teams.map((t) => t.members.length));
+  const finish = members * rules.dailyCap * totalDays;
+  const leader = Math.max(0, ...teams.map((t) => t.pts));
+  const windowMax = finish;
+  const pacePct = totalDays ? Math.min(97, (daysElapsed / totalDays) * 100) : 0;
+  $("track-note").textContent = `🏁 เส้นชัย ${fmtNum(finish)} คะแนน · ผู้นำอีก ${fmtNum(Math.ceil(finish - leader))}`;
+  $("track").innerHTML = [...teams]
+    .sort((x, y) => x.id.localeCompare(y.id)) // เลนเรียง A–G คงที่ ไม่สลับตามอันดับ
+    .map((t) => {
+      const pct = Math.min(97, (t.pts / windowMax) * 100);
+      return `<div class="lane" style="--team:${esc(t.color)}">
+        <div class="lane-label"><span class="dot-badge">${esc(t.id)}</span><span class="lane-pts">${fmtPts(t.pts)}</span></div>
+        <div class="lane-run">
+          <div class="lane-line"></div>
+          <div class="runner-dot" data-pct="${pct.toFixed(2)}" style="left:0%" title="${esc(t.name)} ${fmtPts(t.pts)} คะแนน">
+            <span class="fig">${runnerSvg()}</span>
+          </div>
+        </div>
+      </div>`;
+    })
+    .join("") + `<div class="pace" style="left:calc(var(--label-w) + (100% - var(--label-w) - 44px) * ${(pacePct / 100).toFixed(4)})"><span>วันที่ ${daysElapsed}</span></div><div class="finish" aria-hidden="true"></div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll(".runner-dot").forEach((d) => (d.style.left = `${d.dataset.pct}%`));
+  }));
+}
+
+function renderTopRunners(runners) {
+  const top = runners.filter((r) => r.pts > 0).slice(0, 3);
+  $("top-runners-card").hidden = top.length === 0;
+  $("top-runners").innerHTML = top
+    .map((r, i) => `<li>
+      <span class="tr-medal">${["🥇", "🥈", "🥉"][i]}</span>
+      <span class="tr-name">${esc(r.name)} <small style="color:${esc(r.team.color)}">● ${esc(r.team.name)}</small></span>
+      <b>${fmtPts(r.pts)}</b></li>`)
+    .join("");
+}
+
+// ตัวเลขคะแนนนับขึ้นจาก 0 ตอนวาดการ์ด
+function countUp(ms = 900) {
+  const els = [...document.querySelectorAll("[data-count]")];
+  const t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / ms);
+    const e = 1 - Math.pow(1 - k, 3);
+    els.forEach((el) => (el.textContent = fmtPts(Number(el.dataset.count) * e)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 function renderRules(r) {
