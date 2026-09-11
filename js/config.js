@@ -6,7 +6,7 @@
 // 4. เปลี่ยน USE_SAMPLE เป็น false
 
 export const USE_SAMPLE = false;
-export const SHEET_ID = "1CIUISs4ayf5PZqBtvMoFJaPzSsmefQ5a";
+export const SHEET_ID = "1CoIA14mlVZBk9hIDpk_3JtJ_d10QriVIlElr0sUoy7M";
 
 export const TABS = { teams: "teams", runs: "runs", config: "config" };
 
