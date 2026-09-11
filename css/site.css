@@ -352,3 +352,11 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .rules-card summary::after { content: "▸"; color: var(--muted); transition: transform 0.2s; }
 .rules-card[open] summary::after { transform: rotate(90deg); }
 .rules-card .rules { padding: 0 14px 14px 34px; margin: 0; }
+
+/* ── lane rank marks ──────────────────────────────── */
+.track { --label-w: 96px; }
+.lane-rank { width: 20px; text-align: center; font-size: 0.95rem; flex: 0 0 auto; }
+.lane-rank-n { color: var(--muted); font-weight: 700; font-size: 0.85rem; }
+.lane.is-leader .lane-run .lane-line { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 18px); opacity: 0.6; }
+.lane.is-leader .lane-pts { color: var(--gold); }
+@media (min-width: 640px) { .track { --label-w: 112px; } }

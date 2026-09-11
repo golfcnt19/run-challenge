@@ -125,8 +125,9 @@ function renderTrack(teams, rules) {
     .sort((x, y) => x.id.localeCompare(y.id)) // เลนเรียง A–G คงที่ ไม่สลับตามอันดับ
     .map((t) => {
       const pct = Math.min(97, (t.pts / windowMax) * 100);
-      return `<div class="lane" style="--team:${esc(t.color)}">
-        <div class="lane-label"><span class="dot-badge">${esc(t.id)}</span><span class="lane-pts">${fmtPts(t.pts)}</span></div>
+      const rankMark = t.pts > 0 && t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : `<span class="lane-rank-n">${t.rank}</span>`;
+      return `<div class="lane ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}">
+        <div class="lane-label"><span class="lane-rank">${rankMark}</span><span class="dot-badge">${esc(t.id)}</span><span class="lane-pts">${fmtPts(t.pts)}</span></div>
         <div class="lane-run">
           <div class="lane-line"></div>
           <div class="runner-dot" data-pct="${pct.toFixed(2)}" style="left:0%" title="${esc(t.name)} ${fmtPts(t.pts)} คะแนน">
