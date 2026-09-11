@@ -434,3 +434,12 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .ex-row > span:first-child { color: var(--muted); }
 .ex-row small { color: var(--muted); font-size: 0.75rem; }
 @media (max-width: 480px) { .ex-row { grid-template-columns: 1fr; gap: 2px; } .ex-row > span:last-child { padding-left: 10px; } }
+
+/* ── week cards table ─────────────────────────────── */
+.week-cards th, .week-cards td { text-align: center; padding: 6px 4px; }
+.week-cards th:first-child, .week-cards td:first-child { text-align: left; }
+.week-cards th small { font-weight: 400; color: var(--muted); }
+.week-cards .is-today { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.week-cards td.has-card { line-height: 1.15; }
+.week-cards .wc-ic { display: block; font-size: 1rem; }
+.week-cards td.has-card small { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }

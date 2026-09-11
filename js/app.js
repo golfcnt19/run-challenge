@@ -1,7 +1,7 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
 import { loadAll } from "./sheets.js";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints } from "./scoring.js";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso } from "./format.js";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js";
 import { USE_SAMPLE } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
@@ -57,6 +57,7 @@ function render(loadedAt) {
 
   renderTrack(teams, rules);
   renderBoard(teams, rules);
+  renderWeekCards(teams);
   renderTopRunners(state.runners);
   renderRules(rules);
   renderDaily(teams, days);
@@ -159,6 +160,29 @@ function renderTrack(teams, rules) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.querySelectorAll(".runner-dot").forEach((d) => (d.style.left = `${d.dataset.pct}%`));
   }));
+}
+
+// ตารางการ์ดวีคปัจจุบัน: แถว = ทีม A–G, คอลัมน์ = จ–อา, ช่อง = การ์ดที่ใช้วันนั้น (block ยังไม่เฉลย = 🛡️ ไม่บอกเป้า)
+function renderWeekCards(teams) {
+  const today = todayIso();
+  const mon = weekKey(today);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+  const DOW = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+  $("week-cards-range").textContent = `${fmtDateShort(days[0])} – ${fmtDateShort(days[6])}`;
+  const byId = [...teams].sort((x, y) => x.id.localeCompare(y.id));
+  const head = `<thead><tr><th>ทีม</th>${days.map((d, i) => `<th class="${d === today ? "is-today" : ""}">${DOW[i]}<br><small>${d.slice(8)}</small></th>`).join("")}<th>เหลือ</th></tr></thead>`;
+  const body = byId.map((t) => {
+    const mine = state.cards.filter((c) => c.team.id === t.id && c.week === mon);
+    const cells = days.map((d) => {
+      const c = mine.find((x) => x.date === d);
+      if (!c) return `<td class="${d === today ? "is-today" : ""} zero">·</td>`;
+      const who = c.card === "carry" ? `${c.runner}→${c.target}` : c.card === "x2" ? c.runner : c.revealed ? `${c.target} (${c.targetTeam.id})` : "?";
+      return `<td class="${d === today ? "is-today" : ""} has-card" title="${esc(cardTitle(c))}"><span class="wc-ic">${CARDS[c.card].icon}</span><small>${esc(who)}</small></td>`;
+    }).join("");
+    const left = state.cardState[t.id]?.left || [];
+    return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td>${cells}<td>${left.length ? left.map((k) => CARDS[k].icon).join(" ") : "–"}</td></tr>`;
+  }).join("");
+  $("week-cards").innerHTML = head + `<tbody>${body}</tbody>`;
 }
 
 function renderTopRunners(runners) {
