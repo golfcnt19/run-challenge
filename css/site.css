@@ -476,6 +476,9 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 @media (min-width: 640px) { .seg { grid-template-columns: repeat(9, 1fr); } }
 
 .stat-row { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+/* กล่องสถิติทีม 5 ช่อง: จอกว้างแถวเดียว จอแคบ 3+2 */
+#team-detail .stat-row { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 480px) { #team-detail .stat-row { grid-template-columns: repeat(3, 1fr); } }
 
 /* ── podium: top 3 cards — ไม่แตะสีทีม เด่นด้วยเหรียญ/ตัวเลข/ริบบิ้นมุม ── */
 .team-card.is-top { position: relative; overflow: hidden; }

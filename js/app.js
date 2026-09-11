@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx6ail7";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx6ail7";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx6ail7";
-import { USE_SAMPLE } from "./config.js?v=mtx6ail7";
+import { loadAll } from "./sheets.js?v=mtx6ebas";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx6ebas";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx6ebas";
+import { USE_SAMPLE } from "./config.js?v=mtx6ebas";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -505,7 +505,7 @@ function renderTeam(t) {
         <div class="stat"><b>${sum("treadmill", 1)}</b><small>🏃‍♂️ วิ่งลู่ กม.</small></div>
         <div class="stat"><b>${sum("walk")}</b><small>🚶 เดิน ก้าว</small></div>
         <div class="stat"><b>${sum("bike", 1)}</b><small>🚴 ปั่น กม.</small></div>
-        ${sportMin ? `<div class="stat"><b>${fmtNum(sportMin)}</b><small>🏸⚽🏊 กีฬา นาที</small></div>` : ""}
+        <div class="stat"><b>${fmtNum(sportMin)}</b><small>🏸 กีฬาอื่น ๆ นาที</small></div>
       </div>
     </div>
     <div class="card" style="--team:${esc(t.color)}">
