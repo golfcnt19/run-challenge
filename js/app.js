@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx34jjj";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx34jjj";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx34jjj";
-import { USE_SAMPLE } from "./config.js?v=mtx34jjj";
+import { loadAll } from "./sheets.js?v=mtx41hjp";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx41hjp";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx41hjp";
+import { USE_SAMPLE } from "./config.js?v=mtx41hjp";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -82,16 +82,12 @@ const BADGES = {
   steady:  { label: "🔁 ทีมสม่ำเสมอ",   title: "สมาชิกที่ส่งผลเกิน 80% ของวันมีมากที่สุด (อย่างน้อย 3 คน หลังผ่านไป 5 วัน)" },
 };
 
-// นับถอยหลังตัวใหญ่ในแบนเนอร์ 3 วันสุดท้ายเปลี่ยนเป็นสีทองกระพริบ
+// 3 วันสุดท้าย: ข้อความ "เหลืออีก N วัน" ในแถบเดิมเปลี่ยนเป็นสีทอง + 🔥 (วันปกติไม่มีอะไรเพิ่ม)
 function renderCountdown(rules, daysLeft, today) {
-  const el = $("countdown");
-  if (today < rules.startDate || today > rules.endDate) return (el.hidden = true);
-  const final = daysLeft <= 3;
-  el.className = "countdown" + (final ? " is-final" : "");
-  el.innerHTML = daysLeft === 0
-    ? `<b>วันสุดท้าย!</b><span>🔥 วิ่งให้สุด</span>`
-    : `<b>${daysLeft}</b><span>${final ? "🔥 วันสุดท้าย — เร่งเลย!" : "วันที่เหลือ"}</span>`;
-  el.hidden = false;
+  const el = $("progress-days");
+  const final = today >= rules.startDate && today <= rules.endDate && daysLeft <= 3;
+  el.classList.toggle("is-final", final);
+  if (final) el.textContent = daysLeft === 0 ? "🔥 วันสุดท้าย!" : `🔥 เหลืออีก ${daysLeft} วัน — เร่งเลย!`;
 }
 
 // โพเดียมเมื่อจบกิจกรรม (วันนี้ > end_date)

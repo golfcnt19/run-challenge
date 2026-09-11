@@ -494,13 +494,9 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .seg.seg-mini button { display: inline-block; padding: 7px 16px; font-size: 0.85rem; font-weight: 600; border: 0; border-radius: 999px; line-height: 1.4; background: transparent; color: var(--muted); white-space: nowrap; }
 .seg.seg-mini button.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 
-/* ── wow: countdown ───────────────────────────────── */
-.countdown { margin-top: 10px; display: flex; align-items: baseline; gap: 8px; }
-.countdown b { font-size: 2rem; line-height: 1; font-weight: 800; }
-.countdown span { font-size: 0.85rem; opacity: 0.9; }
-.countdown.is-final b { color: #ffd166; animation: pulse 1.2s ease-in-out infinite; }
-.countdown.is-final span { color: #ffd166; font-weight: 600; }
-@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+/* ── 3 วันสุดท้าย ────────────────────────────────── */
+#progress-days.is-final { color: #ffd166; font-weight: 700; display: inline-block; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
 /* ── wow: celebrate banner ────────────────────────── */
 .celebrate { position: relative; overflow: hidden; background: linear-gradient(135deg, #fff7d6, #ffe9f3); color: #5a3b00; border-radius: var(--radius); padding: 12px 14px; margin: 12px 0; box-shadow: var(--shadow); font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
