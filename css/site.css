@@ -282,7 +282,7 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   .tag.down { background: #3a1a1a; color: #ff8a80; }
   .tag.lead { background: #3a2f0f; color: #fde68a; }
 }
-.team-card.is-leader { box-shadow: 0 0 0 2px var(--gold), 0 8px 24px -10px rgba(212, 160, 23, 0.6); }
+
 
 /* ── top runners ──────────────────────────────────── */
 .top-runners { list-style: none; margin: 0; padding: 0; }
@@ -480,3 +480,13 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 @media (min-width: 640px) { .seg { grid-template-columns: repeat(9, 1fr); } }
 
 .stat-row { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+
+/* ── podium: top 3 cards — ไม่แตะสีทีม เด่นด้วยเหรียญ/ตัวเลข/ริบบิ้นมุม ── */
+.team-card.is-top { position: relative; overflow: hidden; }
+.team-card.is-top .rank { font-size: 2rem; width: 44px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25)); }
+.team-card.is-top .team-pts b { font-size: 1.75rem; }
+.team-card.top1 .team-pts b { color: var(--gold); }
+.team-card.top2 .team-pts b { color: #5f6b85; }
+.team-card.top3 .team-pts b { color: var(--bronze); }
+.team-card.top1 { box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+@media (prefers-color-scheme: dark) { .team-card.top2 .team-pts b { color: #d5dbe8; } }

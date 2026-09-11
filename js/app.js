@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx0qj9w";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx0qj9w";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx0qj9w";
-import { USE_SAMPLE } from "./config.js?v=mtx0qj9w";
+import { loadAll } from "./sheets.js?v=mtx2dlun";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx2dlun";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx2dlun";
+import { USE_SAMPLE } from "./config.js?v=mtx2dlun";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -93,10 +93,8 @@ function renderBoard(teams, rules) {
       if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
       if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
       else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
-      const cs = state.cardState[t.id];
-      if (cs) tags.push(`<span class="tag cards" title="การ์ดวีคนี้">🃏 ${CARD_TYPES.map((k) => `<span class="${cs.used[k] ? "used" : ""}">${CARDS[k].icon}</span>`).join("")}</span>`);
       return `
-      <li class="team-card ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
+      <li class="team-card ${t.pts > 0 && t.rank <= 3 ? `is-top top${t.rank}` : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
         <div class="rank r${t.rank}">${medal}</div>
         <div class="badge">${esc(t.id)}</div>
         <div>
