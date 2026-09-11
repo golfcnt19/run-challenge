@@ -19,7 +19,8 @@ let cardState = {};
 let rawData = null;
 let pickedCard = null;
 let teamId = store.get(LS.team) || "";
-let scored = null; // ผล computeScores ล่าสุด (ใช้วาดประวัติ)
+let scored = null;
+let doneFor = null; // ทีมที่กล่อง "ใช้แล้ว" เป็นของ — สลับทีมแล้วซ่อน // ผล computeScores ล่าสุด (ใช้วาดประวัติ)
 let histScope = "week", histTeam = "all";
 
 async function init() {
@@ -161,6 +162,7 @@ function renderCards() {
   const t = teams.find((x) => x.id === teamId);
   $("cards-card").hidden = !t;
   $("no-team").hidden = Boolean(t);
+  if (doneFor !== teamId) { $("card-done").hidden = true; $("card-done").innerHTML = ""; }
   if (!t) return;
   const cs = cardState[t.id] || { used: {}, usedToday: false, left: CARD_TYPES };
   $("cards-team").textContent = t.name;
@@ -233,6 +235,7 @@ async function useCard() {
     if (roll) clearInterval(roll);
     if (!out.ok) { done.hidden = true; done.classList.remove("is-rolling"); return showError(out.error || "ใช้การ์ดไม่สำเร็จ", "card-error"); }
     const c = out.card;
+    doneFor = teamId;
     // อัปเดตสถานะการ์ดในเครื่อง แล้ววาดปุ่มใหม่
     rawData.cards = [...(rawData.cards || []), { date: c.date, team_id: teamId, card: c.card, runner: c.runner || "", target_team: c.target_team || "", target_runner: c.target_runner || "" }];
     scored = computeScores(rawData);
