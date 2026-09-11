@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtwryrz4";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwryrz4";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwryrz4";
-import { USE_SAMPLE } from "./config.js?v=mtwryrz4";
+import { loadAll } from "./sheets.js?v=mtx036cz";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx036cz";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx036cz";
+import { USE_SAMPLE } from "./config.js?v=mtx036cz";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -229,6 +229,7 @@ function renderRules(r) {
     <li>วิ่งสวน / วิ่งลู่ <b>1 กม. = ${fmtPts(r.pointsPerRunKm)} คะแนน</b></li>
     <li>เดิน <b>${fmtNum(r.walkStepsForFull)} ก้าว = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
+    <li>🏸 แบด · 🎾 เทนนิส · ⚽ ฟุตบอล · 🏊 ว่ายน้ำ · 🏀 บาส <b>${fmtNum(r.sportMinutesForFull)} นาที = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ)</li>
     <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
     <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</li>
     <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
@@ -343,10 +344,11 @@ function renderTeam(t) {
   const { rules, daysElapsed } = state;
   const maxPerRunner = rules.dailyCap * daysElapsed;
   const act = (a, digits = 0) => (t.byActivity[a] ? `${fmtNum(t.byActivity[a], digits)}` : "0");
+  const sportMin = ["badminton", "tennis", "football", "swim", "basketball"].reduce((s, k) => s + (t.byActivity[k] || 0), 0);
 
   const runners = t.runners
     .map((r, i) => {
-      const parts = Object.entries(r.byActivity).map(([a, v]) => `${ACTIVITIES[a].icon} ${fmtNum(v, a === "walk" ? 0 : 1)} ${ACTIVITIES[a].unit}`);
+      const parts = Object.entries(r.byActivity).map(([a, v]) => `${ACTIVITIES[a].icon} ${fmtNum(v, ACTIVITIES[a].timed || a === "walk" ? 0 : 1)} ${ACTIVITIES[a].unit}`);
       const pct = maxPerRunner ? Math.min(100, (r.pts / maxPerRunner) * 100) : 0;
       return `
       <li class="runner is-clickable" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">
@@ -364,7 +366,7 @@ function renderTeam(t) {
   const since = state.days.length ? state.days[Math.max(0, state.days.length - 7)] : "";
   const log = state.entries
     .filter((e) => e.team.id === t.id && e.date >= since)
-    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${ACTIVITIES[e.activity].icon} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</li>`)
+    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${ACTIVITIES[e.activity].icon} ${fmtNum(e.amount, ACTIVITIES[e.activity].timed || e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</li>`)
     .join("");
 
   $("team-detail").innerHTML = `
@@ -379,6 +381,7 @@ function renderTeam(t) {
         <div class="stat"><b>${act("treadmill", 1)}</b><small>🏃‍♂️ วิ่งลู่ กม.</small></div>
         <div class="stat"><b>${act("walk")}</b><small>🚶 เดิน ก้าว</small></div>
         <div class="stat"><b>${act("bike", 1)}</b><small>🚴 ปั่น กม.</small></div>
+        ${sportMin ? `<div class="stat"><b>${fmtNum(sportMin)}</b><small>🏸⚽🏊 กีฬา นาที</small></div>` : ""}
       </div>
     </div>
     <div class="card" style="--team:${esc(t.color)}">
@@ -421,7 +424,7 @@ function toggleRunner(li) {
   box.innerHTML = list.length
     ? `<ul class="log">${list.map((e) => `<li>
         <span class="d">${fmtDateShort(e.date)}</span>
-        <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
+        <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, ACTIVITIES[e.activity].timed || e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
         ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
         <span class="a"><b>+${fmtPts(rawPoints(e.activity, e.amount, state.rules))}</b>${(r.raw[e.date] || 0) > state.rules.dailyCap ? `<small class="capped">วันนี้รวม ${fmtPts(r.raw[e.date])} → นับ ${fmtPts(state.rules.dailyCap)}</small>` : ""}${cardNote(r, e.date)}</span>
       </li>`).join("")}</ul>`

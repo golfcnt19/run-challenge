@@ -4,6 +4,7 @@
 //   วิ่งสวน / วิ่งลู่   1 กม. = points_per_run_km คะแนน
 //   เดิน               walk_steps_for_full ก้าว = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
+//   กีฬา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
 //   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
 //   คะแนนทีม = ผลรวมคะแนนสมาชิก
 //
@@ -13,13 +14,18 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtwryrz4";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx036cz";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
   treadmill: { label: "วิ่งลู่",      unit: "กม.",  icon: "🏃‍♂️" },
   walk:      { label: "เดิน",        unit: "ก้าว", icon: "🚶" },
   bike:      { label: "ปั่นจักรยาน", unit: "กม.",  icon: "🚴" },
+  badminton: { label: "แบดมินตัน",   unit: "นาที", icon: "🏸", timed: true },
+  tennis:    { label: "เทนนิส",      unit: "นาที", icon: "🎾", timed: true },
+  football:  { label: "ฟุตบอล",      unit: "นาที", icon: "⚽", timed: true },
+  swim:      { label: "ว่ายน้ำ",      unit: "นาที", icon: "🏊", timed: true },
+  basketball:{ label: "บาสเกตบอล",   unit: "นาที", icon: "🏀", timed: true },
 };
 
 // ให้แอดมินพิมพ์ในชีตเป็นไทยหรืออังกฤษก็ได้
@@ -28,6 +34,11 @@ const ALIASES = {
   treadmill: ["treadmill", "วิ่งลู่", "ลู่", "ลู่วิ่ง"],
   walk: ["walk", "เดิน", "steps", "ก้าว"],
   bike: ["bike", "ปั่น", "ปั่นจักรยาน", "จักรยาน", "cycling", "cycle", "ride"],
+  badminton: ["badminton", "แบด", "แบดมินตัน", "ตีแบด"],
+  tennis: ["tennis", "เทนนิส"],
+  football: ["football", "soccer", "ฟุตบอล", "บอล", "เตะบอล", "เตะฟุตบอล"],
+  swim: ["swim", "swimming", "ว่ายน้ำ", "ว่าย"],
+  basketball: ["basketball", "บาส", "บาสเกตบอล"],
 };
 
 export function normalizeActivity(s) {
@@ -64,6 +75,8 @@ export function readRules(config) {
     pointsPerRunKm: num("points_per_run_km", 1),
     walkStepsForFull: num("walk_steps_for_full", 10000),
     bikeKmForFull: num("bike_km_for_full", 20),
+    sportMinutesForFull: num("sport_minutes_for_full", 60),
+    sportMinMinutes: num("sport_min_minutes", 15),
   };
 }
 
@@ -77,6 +90,8 @@ export function rawPoints(activity, amount, rules) {
       return (amount / rules.walkStepsForFull) * rules.dailyCap;
     case "bike":
       return (amount / rules.bikeKmForFull) * rules.dailyCap;
+    case "badminton": case "tennis": case "football": case "swim": case "basketball":
+      return amount < rules.sportMinMinutes ? 0 : (amount / rules.sportMinutesForFull) * rules.dailyCap;
     default:
       return 0;
   }

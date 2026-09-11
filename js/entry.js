@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mtwryrz4";
-import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js?v=mtwryrz4";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtwryrz4";
-import { ENTRY_URL } from "./config.js?v=mtwryrz4";
+import { loadAll } from "./sheets.js?v=mtx036cz";
+import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js?v=mtx036cz";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtx036cz";
+import { ENTRY_URL } from "./config.js?v=mtx036cz";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -27,6 +27,8 @@ const AMOUNT = {
   walk:      { label: "จำนวนก้าว",     step: "1",    ph: "เช่น 8500",  hint: (r) => `${fmtNum(r.walkStepsForFull)} ก้าว = ${r.dailyCap} คะแนน (คิดตามสัดส่วน)` },
   bike:      { label: "ระยะทาง (กม.)", step: "0.1",  ph: "เช่น 15",    hint: (r) => `${fmtNum(r.bikeKmForFull)} กม. = ${r.dailyCap} คะแนน (คิดตามสัดส่วน)` },
 };
+const SPORT = { label: "เวลาที่เล่น (นาที)", step: "1", ph: "เช่น 60", hint: (r) => `${fmtNum(r.sportMinutesForFull)} นาที = ${r.dailyCap} คะแนน (คิดตามสัดส่วน) · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ` };
+for (const k of ["badminton", "tennis", "football", "swim", "basketball"]) AMOUNT[k] = SPORT;
 
 async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
@@ -71,7 +73,7 @@ function entryHtml(e, idx) {
   const a = ACTIVITIES[e.activity];
   return `<li data-idx="${idx}">
     <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
-    <span class="a">${a.icon} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
+    <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.a.timed || activity === "walk" ? 0 : 2)} ${a.unit}</span>
     <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
   </li>`;
 }
@@ -146,7 +148,7 @@ async function submit(e) {
   const dup = entries.find((x) => x.runner === payload.runner && x.date === payload.date && x.activity === activity && Math.abs(Number(x.amount) - Number(payload.amount)) < 0.005);
   if (dup) {
     const a = ACTIVITIES[activity];
-    if (!confirm(`${payload.runner} มีรายการ ${a.label} ${fmtNum(payload.amount, activity === "walk" ? 0 : 2)} ${a.unit} ของวัน ${fmtDateShort(payload.date)} อยู่แล้ว
+    if (!confirm(`${payload.runner} มีรายการ ${a.label} ${fmtNum(payload.amount, a.timed || activity === "walk" ? 0 : 2)} ${a.unit} ของวัน ${fmtDateShort(payload.date)} อยู่แล้ว
 
 กรอกซ้ำจริงใช่ไหม?`)) return;
   }
@@ -180,7 +182,7 @@ async function remove(idx, btn) {
   const pin = $("pin").value.trim();
   if (!pin) return showError("ใส่ PIN ของทีมในฟอร์มด้านบนก่อนลบ", "recent-error");
   const a = ACTIVITIES[en.activity];
-  if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, en.activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
+  if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, en.a.timed || activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
   btn.disabled = true;
   btn.textContent = "…";
   try {

@@ -121,8 +121,11 @@ function addEntry_(b) {
 
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!isFinite(amount) || amount <= 0) return { ok: false, error: "จำนวนต้องมากกว่า 0" };
+  const timed = ["badminton", "tennis", "football", "swim", "basketball"].indexOf(activity) >= 0;
   if (activity === "walk" && amount > 100000) return { ok: false, error: "จำนวนก้าวมากผิดปกติ" };
-  if (activity !== "walk" && amount > 300) return { ok: false, error: "ระยะทางมากผิดปกติ" };
+  if (timed && amount > 600) return { ok: false, error: "เวลาเกิน 10 ชั่วโมง ผิดปกติ" };
+  if (timed && amount < (parseFloat(config.sport_min_minutes) || 15)) return { ok: false, error: "กีฬาต้องอย่างน้อย " + (parseFloat(config.sport_min_minutes) || 15) + " นาทีถึงจะนับ" };
+  if (!timed && activity !== "walk" && amount > 300) return { ok: false, error: "ระยะทางมากผิดปกติ" };
 
   const note = String(b.note || "").trim().slice(0, 200);
 
@@ -279,6 +282,11 @@ function normalizeActivity_(s) {
     treadmill: ["treadmill", "วิ่งลู่", "ลู่", "ลู่วิ่ง"],
     walk: ["walk", "เดิน", "steps", "ก้าว"],
     bike: ["bike", "ปั่น", "ปั่นจักรยาน", "จักรยาน", "cycling", "cycle", "ride"],
+    badminton: ["badminton", "แบด", "แบดมินตัน", "ตีแบด"],
+    tennis: ["tennis", "เทนนิส"],
+    football: ["football", "soccer", "ฟุตบอล", "บอล", "เตะบอล", "เตะฟุตบอล"],
+    swim: ["swim", "swimming", "ว่ายน้ำ", "ว่าย"],
+    basketball: ["basketball", "บาส", "บาสเกตบอล"],
   };
   for (const k in map) if (map[k].indexOf(v) >= 0) return k;
   return null;
