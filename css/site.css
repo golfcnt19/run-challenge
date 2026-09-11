@@ -200,6 +200,12 @@ button { font: inherit; cursor: pointer; }
 }
 .btn-primary[disabled] { opacity: 0.6; cursor: wait; }
 code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 4px; }
+.btn-del {
+  border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 2px 8px; font-size: 0.9rem; line-height: 1.4;
+}
+.btn-del:hover { border-color: var(--danger); background: var(--danger-bg); }
+.btn-del[disabled] { opacity: 0.5; cursor: wait; }
+.log .empty { display: block; padding: 10px 0; }
 
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 .foot { color: var(--muted); font-size: 0.78rem; padding: 20px 14px 32px; text-align: center; }

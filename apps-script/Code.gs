@@ -42,7 +42,7 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    return json_(addEntry_(body));
+    return json_(body.action === "delete" ? deleteEntry_(body) : addEntry_(body));
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
   } finally {
@@ -51,21 +51,57 @@ function doPost(e) {
 }
 
 // ── ตรรกะ ────────────────────────────────────────────────────────────
+// ตรวจทีม + PIN + ชื่อสมาชิก (ใช้ร่วมกันทั้งเพิ่มและลบ) คืน {error} หรือ {team, teamId, member, isAdmin}
+function authorize_(b, teams) {
+  const teamId = String(b.team_id || "").trim().toUpperCase();
+  const pin = String(b.pin || "").trim();
+  const team = teams[teamId];
+  if (!team) return { error: "ไม่พบทีม " + teamId };
+  const isAdmin = PINS.ADMIN && pin === PINS.ADMIN;
+  if (!isAdmin && pin !== PINS[teamId]) return { error: "PIN ไม่ถูกต้อง", code: "PIN" };
+  const runner = String(b.runner || "").trim();
+  const member = team.members.find((m) => m.toLowerCase() === runner.toLowerCase());
+  if (!member) return { error: runner + " ไม่ได้อยู่ในทีม " + teamId };
+  return { team: team, teamId: teamId, member: member, isAdmin: isAdmin };
+}
+
+// ลบรายการที่ตรงกับ date + runner + activity + amount (ถ้าซ้ำหลายแถว ลบแถวล่างสุด)
+function deleteEntry_(b) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const auth = authorize_(b, readTeams_(ss));
+  if (auth.error) return { ok: false, error: auth.error, code: auth.code };
+
+  const date = normalizeDate_(b.date);
+  const activity = normalizeActivity_(b.activity);
+  const amount = Number(String(b.amount || "").replace(/,/g, ""));
+  if (!date || !activity || !isFinite(amount)) return { ok: false, error: "ข้อมูลรายการไม่ครบ" };
+
+  const sh = ss.getSheetByName(SHEET_RUNS);
+  if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
+  const last = sh.getLastRow();
+  if (last < 2) return { ok: false, error: "ไม่พบรายการ" };
+  const rows = sh.getRange(2, 1, last - 1, 4).getValues();
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    const rDate = r[0] instanceof Date ? Utilities.formatDate(r[0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(r[0]);
+    if (rDate !== date) continue;
+    if (String(r[1]).trim().toLowerCase() !== auth.member.toLowerCase()) continue;
+    if (normalizeActivity_(r[2]) !== activity) continue;
+    if (Math.abs(Number(String(r[3]).replace(/,/g, "")) - amount) > 0.005) continue;
+    sh.deleteRow(i + 2);
+    return { ok: true, row: i + 2 };
+  }
+  return { ok: false, error: "ไม่พบรายการนี้ในชีต (อาจถูกลบไปแล้ว)" };
+}
+
 function addEntry_(b) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const teams = readTeams_(ss);
   const config = readConfig_(ss);
 
-  const teamId = String(b.team_id || "").trim().toUpperCase();
-  const pin = String(b.pin || "").trim();
-  const team = teams[teamId];
-  if (!team) return { ok: false, error: "ไม่พบทีม " + teamId };
-  const isAdmin = PINS.ADMIN && pin === PINS.ADMIN;
-  if (!isAdmin && pin !== PINS[teamId]) return { ok: false, error: "PIN ไม่ถูกต้อง", code: "PIN" };
-
-  const runner = String(b.runner || "").trim();
-  const member = team.members.find((m) => m.toLowerCase() === runner.toLowerCase());
-  if (!member) return { ok: false, error: runner + " ไม่ได้อยู่ในทีม " + teamId };
+  const auth = authorize_(b, teams);
+  if (auth.error) return { ok: false, error: auth.error, code: auth.code };
+  const teamId = auth.teamId, member = auth.member, isAdmin = auth.isAdmin;
 
   const date = normalizeDate_(b.date);
   if (!date) return { ok: false, error: "วันที่ไม่ถูกต้อง" };
@@ -88,7 +124,8 @@ function addEntry_(b) {
   if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
   ensureHeaders_(sh);
   // คอลัมน์ date เป็นข้อความ เพื่อไม่ให้ชีตแปลงเป็นวันที่แล้ว export ผิดรูปแบบ
-  sh.appendRow([date, member, activity, amount, note, new Date(), teamId + (isAdmin ? " (admin)" : "")]);
+  const stamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"); // เวลาไทยเสมอ ไม่ขึ้นกับ timezone ของโปรเจกต์
+  sh.appendRow([date, member, activity, amount, note, stamp, teamId + (isAdmin ? " (admin)" : "")]);
   const row = sh.getLastRow();
   sh.getRange(row, 1).setNumberFormat("@");
 

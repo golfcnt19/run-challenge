@@ -1,7 +1,7 @@
-// หน้ากรอกผล — โหลดรายชื่อทีมจากชีต (อ่านอย่างเดียว) แล้วส่งรายการไป Apps Script
+// หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
 import { loadAll } from "./sheets.js";
-import { readRules, ACTIVITIES } from "./scoring.js";
-import { fmtDateLong, fmtDateShort, fmtNum, todayIso } from "./format.js";
+import { computeScores, ACTIVITIES } from "./scoring.js";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js";
 import { ENTRY_URL } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
@@ -16,8 +16,10 @@ const store = {
 
 let teams = [];
 let rules = null;
+let entries = []; // ทุกรายการจากชีต (เรียงใหม่→เก่า) — อัปเดตในเครื่องเมื่อเพิ่ม/ลบ
 let teamId = store.get(LS.team) || "";
 let activity = "run";
+const RECENT_LIMIT = 15;
 const AMOUNT = {
   run:       { label: "ระยะทาง (กม.)", step: "0.01", ph: "เช่น 5.2",   hint: (r) => `1 กม. = ${r.pointsPerRunKm} คะแนน · เพดาน ${r.dailyCap}/วัน` },
   treadmill: { label: "ระยะทาง (กม.)", step: "0.01", ph: "เช่น 3",     hint: (r) => `ถ่ายรูปคู่ลู่ให้เห็นระยะส่งในกลุ่ม · 1 กม. = ${r.pointsPerRunKm} คะแนน` },
@@ -32,16 +34,16 @@ async function init() {
   $("pin").value = store.get(LS.pin) || "";
   try {
     const data = await loadAll();
-    rules = readRules(data.config);
-    teams = data.teams.filter((t) => t.team_id).map((t) => ({
-      id: t.team_id, name: t.team_name || t.team_id, color: t.color || "#888",
-      members: (t.members || "").split(",").map((s) => s.trim()).filter(Boolean),
-    }));
+    const scored = computeScores(data);
+    rules = scored.rules;
+    teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
+    entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
     $("range").textContent = `${rules.title} · ${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)}`;
     $("date").min = rules.startDate;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
     renderChips();
     renderRunners();
+    renderRecent();
     setActivity(activity);
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`);
@@ -49,7 +51,8 @@ async function init() {
 }
 
 function renderChips() {
-  $("team-chips").innerHTML = teams
+  $("team-chips").innerHTML = [...teams]
+    .sort((a, b) => a.id.localeCompare(b.id))
     .map((t) => `<button type="button" class="chip ${t.id === teamId ? "is-active" : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}">${esc(t.name)}</button>`)
     .join("");
 }
@@ -63,6 +66,24 @@ function renderRunners() {
   sel.disabled = !t;
 }
 
+function entryHtml(e, idx) {
+  const a = ACTIVITIES[e.activity];
+  return `<li data-idx="${idx}">
+    <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
+    <span class="a">${a.icon} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
+    <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
+  </li>`;
+}
+
+function renderRecent() {
+  const t = teams.find((x) => x.id === teamId);
+  $("recent-card").hidden = !t;
+  if (!t) return;
+  $("recent-team").textContent = t.name;
+  const mine = entries.map((e, i) => [e, i]).filter(([e]) => e.teamId === teamId).slice(0, RECENT_LIMIT);
+  $("recent-list").innerHTML = mine.length ? mine.map(([e, i]) => entryHtml(e, i)).join("") : `<li class="empty">ยังไม่มีรายการ</li>`;
+}
+
 function setActivity(v) {
   activity = v;
   document.querySelectorAll("#activity button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === v));
@@ -73,9 +94,17 @@ function setActivity(v) {
   $("amount-hint").textContent = rules ? a.hint(rules) : "";
 }
 
-function showError(msg) {
-  $("form-error").hidden = !msg;
-  $("form-error").textContent = msg || "";
+function showError(msg, id = "form-error") {
+  $(id).hidden = !msg;
+  $(id).textContent = msg || "";
+}
+
+async function callApi(payload) {
+  // ส่งเป็น text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight (Apps Script ไม่รองรับ OPTIONS)
+  const res = await fetch(ENTRY_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
+  const out = await res.json();
+  if (out.code === "PIN") store.del(LS.pin);
+  return out;
 }
 
 async function submit(e) {
@@ -101,27 +130,45 @@ async function submit(e) {
   btn.disabled = true;
   btn.textContent = "กำลังบันทึก…";
   try {
-    // ส่งเป็น text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight (Apps Script ไม่รองรับ OPTIONS)
-    const res = await fetch(ENTRY_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
-    const out = await res.json();
-    if (!out.ok) {
-      if (out.code === "PIN") store.del(LS.pin);
-      return showError(out.error || "บันทึกไม่สำเร็จ");
-    }
+    const out = await callApi(payload);
+    if (!out.ok) return showError(out.error || "บันทึกไม่สำเร็จ");
     store.set(LS.pin, payload.pin);
     store.set(LS.team, payload.team_id);
-    const en = out.entry;
-    $("done-card").hidden = false;
-    $("done-list").insertAdjacentHTML("afterbegin",
-      `<li><span class="d">${fmtDateShort(en.date)}</span><span>${esc(en.runner)}</span>${en.note ? `<span class="note">${esc(en.note)}</span>` : ""}<span class="a">${ACTIVITIES[en.activity].icon} ${fmtNum(en.amount, en.activity === "walk" ? 0 : 2)} ${ACTIVITIES[en.activity].unit}</span></li>`);
+    entries.unshift({ ...out.entry, teamId: payload.team_id });
+    renderRecent();
     $("amount").value = "";
     $("note").value = "";
-    $("done-card").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    btn.textContent = "✅ บันทึกแล้ว";
+    await new Promise((r) => setTimeout(r, 1200));
   } catch (err) {
     showError(`ส่งไม่สำเร็จ: ${err.message} — ลองใหม่อีกครั้ง`);
   } finally {
     btn.disabled = false;
     btn.textContent = "บันทึกผล";
+  }
+}
+
+async function remove(idx, btn) {
+  const en = entries[idx];
+  if (!en) return;
+  showError("", "recent-error");
+  const pin = $("pin").value.trim();
+  if (!pin) return showError("ใส่ PIN ของทีมในฟอร์มด้านบนก่อนลบ", "recent-error");
+  const a = ACTIVITIES[en.activity];
+  if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, en.activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
+  btn.disabled = true;
+  btn.textContent = "…";
+  try {
+    const out = await callApi({ action: "delete", team_id: en.teamId, pin, runner: en.runner, date: en.date, activity: en.activity, amount: en.amount });
+    if (!out.ok) return showError(out.error || "ลบไม่สำเร็จ", "recent-error");
+    entries.splice(idx, 1);
+    store.set(LS.pin, pin);
+    renderRecent();
+  } catch (err) {
+    showError(`ลบไม่สำเร็จ: ${err.message}`, "recent-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🗑";
   }
 }
 
@@ -131,10 +178,15 @@ $("team-chips").addEventListener("click", (e) => {
   teamId = c.dataset.team;
   renderChips();
   renderRunners();
+  renderRecent();
 });
 $("activity").addEventListener("click", (e) => {
   const b = e.target.closest("[data-v]");
   if (b) setActivity(b.dataset.v);
+});
+$("recent-list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-del]");
+  if (b) remove(Number(b.dataset.del), b);
 });
 $("form").addEventListener("submit", submit);
 init();

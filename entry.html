@@ -74,14 +74,15 @@
     <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
   </form>
 
-  <div class="card" id="done-card" hidden>
-    <h2>✅ บันทึกแล้ว</h2>
-    <ul class="log" id="done-list"></ul>
-    <p class="hint">ตารางคะแนนจะอัปเดตเมื่อกด ↻ รีเฟรช ในหน้าหลัก</p>
+  <div class="card" id="recent-card" hidden>
+    <h2>รายการล่าสุดของทีม <span id="recent-team"></span></h2>
+    <p class="hint">กรอกผิด กด 🗑 เพื่อลบได้เลย (ต้องมี PIN ของทีม)</p>
+    <ul class="log" id="recent-list"></ul>
+    <div class="alert" id="recent-error" hidden></div>
   </div>
 </main>
 
-<footer class="foot wrap">กติกา: ไม่เกิน 5 คะแนน/คน/วัน · แก้ไข/ลบรายการ แจ้งแอดมิน</footer>
+<footer class="foot wrap">กติกา: ไม่เกิน 5 คะแนน/คน/วัน</footer>
 
 <script type="module" src="js/entry.js"></script>
 </body>
