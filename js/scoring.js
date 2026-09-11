@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx41hjp";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx60r8i";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -148,7 +148,7 @@ export function computeScores(data, today = todayIso()) {
     if (!activity) return warnings.push(`แถว ${line}: ไม่รู้จักกิจกรรม "${r.activity}"`);
     if (!Number.isFinite(amount) || amount <= 0) return warnings.push(`แถว ${line}: จำนวน "${r.amount}" ไม่ถูกต้อง`);
     if (date < rules.startDate || date > rules.endDate) return warnings.push(`แถว ${line}: วันที่ ${date} อยู่นอกช่วงกิจกรรม (ไม่นับ)`);
-    const hh = /(d{1,2}):d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
+    const hh = /(\d{1,2}):\d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
     entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null });
   });
 

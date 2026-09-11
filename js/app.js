@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx41hjp";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx41hjp";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx41hjp";
-import { USE_SAMPLE } from "./config.js?v=mtx41hjp";
+import { loadAll } from "./sheets.js?v=mtx60r8i";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx60r8i";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx60r8i";
+import { USE_SAMPLE } from "./config.js?v=mtx60r8i";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -46,7 +46,7 @@ function render(loadedAt) {
     const left = Math.round((new Date(rules.startDate) - new Date(today)) / 86400000);
     $("progress-text").textContent = `ยังไม่เริ่ม — อีก ${left} วัน`;
   } else if (today > rules.endDate) $("progress-text").textContent = "จบกิจกรรมแล้ว 🎉";
-  else $("progress-text").textContent = `วันที่ ${daysElapsed} ของ ${totalDays}`;
+  else $("progress-text").textContent = ""; // ระหว่างแข่งโชว์แค่ "เหลืออีก N วัน" ฝั่งขวาพอ
   const daysLeft = Math.max(0, totalDays - daysElapsed);
   $("progress-days").textContent = today > rules.endDate ? `${pct}%` : `เหลืออีก ${daysLeft} วัน · ${pct}%`;
 
@@ -59,7 +59,6 @@ function render(loadedAt) {
   renderCountdown(rules, daysLeft, today);
   renderPodium(teams, rules);
   renderCelebrate();
-  renderReveal();
   renderTrack(teams, rules);
   renderBoard(teams, rules);
   renderWeekCards(teams);
@@ -70,6 +69,7 @@ function render(loadedAt) {
   renderTeamChips(teams);
   renderTeam(teams.find((t) => t.id === selectedTeam));
   $("foot-note").textContent = `${teams.length} ทีม · ${state.runners.length} คน · ${state.entries.length} รายการ`;
+  renderPodiumLink();
 }
 
 // ป้ายสนุก ๆ ต่อทีม (คำนวณใน scoring.js)
@@ -90,10 +90,33 @@ function renderCountdown(rules, daysLeft, today) {
   if (final) el.textContent = daysLeft === 0 ? "🔥 วันสุดท้าย!" : `🔥 เหลืออีก ${daysLeft} วัน — เร่งเลย!`;
 }
 
+// ลิงก์เล็กท้ายหน้าสำหรับเดโม: เปิด/ปิดตัวอย่างโพเดียม (ซ่อนเมื่อจบกิจกรรมจริงเพราะโชว์อยู่แล้ว)
+function renderPodiumLink() {
+  const a = $("podium-link");
+  const on = new URLSearchParams(location.search).has("podium");
+  a.hidden = state.finished;
+  a.href = on ? "./" : "?podium=1";
+  a.textContent = on ? "✕ ปิดตัวอย่างโพเดียม" : "🏁 ดูตัวอย่างโพเดียม";
+}
+
+// นักกีฬายืนรับเหรียญบนแท่น — เสื้อสีทีม+ตัวอักษรทีม, ที่ 1 ชูสองแขนกระโดด, ที่ 2/3 โบกมือ
+const MEDAL_COLOR = { 1: "#f3c53c", 2: "#c9d1e0", 3: "#d19a5b" };
+const athleteSvg = (id, rank) => `<svg class="athlete-svg" viewBox="0 0 100 130" aria-hidden="true">
+  <circle class="head" cx="50" cy="17" r="11"/>
+  <path class="legs" d="M43 72 L41 118 M57 72 L59 118"/>
+  <path class="arm" d="${rank === 1 ? "M36 38 L18 12" : rank === 2 ? "M36 38 L18 58" : "M36 38 L22 62"}"/>
+  <path class="arm wave" d="${rank === 1 ? "M64 38 L82 12" : "M64 38 L84 14"}"/>
+  <rect class="jersey" x="34" y="31" width="32" height="43" rx="9"/>
+  <text x="50" y="52" text-anchor="middle">${esc(id)}</text>
+  <path class="ribbon" d="M41 32 L50 60 L59 32"/>
+  <circle class="medal" cx="50" cy="64" r="6.5" fill="${MEDAL_COLOR[rank]}"/>
+</svg>`;
+
 // โพเดียมเมื่อจบกิจกรรม (วันนี้ > end_date)
 function renderPodium(teams, rules) {
   const el = $("podium");
-  if (!state.finished || !teams.length) return (el.hidden = true);
+  const preview = !state.finished && new URLSearchParams(location.search).has("podium"); // ?podium=1 = ดูตัวอย่างตอนเดโม
+  if ((!state.finished && !preview) || !teams.length) return (el.hidden = true);
   const top = teams.slice(0, 3);
   const order = [top[1], top[0], top[2]].filter(Boolean); // 2-1-3
   const cls = { 1: "s1", 2: "s2", 3: "s3" };
@@ -101,22 +124,23 @@ function renderPodium(teams, rules) {
   const mvp = state.runners[0];
   const totalKm = state.entries.filter((e) => ["run", "treadmill", "bike"].includes(e.activity)).reduce((s, e) => s + e.amount, 0);
   const totalSteps = state.entries.filter((e) => e.activity === "walk").reduce((s, e) => s + e.amount, 0);
-  const bestDay = [...state.dayStats].sort((a, b) => b.total - a.total)[0];
+  const totalPts = teams.reduce((s, t) => s + t.pts, 0);
   el.innerHTML = `
     <h2>🏁 จบกิจกรรมแล้ว!</h2>
     <p class="sub">${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)} · ${state.totalDays} วัน · ${state.entries.length} รายการ</p>
     <div class="podium">${order.map((t) => `
-      <div class="step ${cls[t.rank]}" style="--team:${esc(t.color)}">
-        <span class="medal">${medal[t.rank]}</span>
-        <span class="badge">${esc(t.id)}</span>
-        <b>${fmtPts(t.pts)}</b><small>${esc(t.name)}</small>
+      <div class="col c${t.rank}" style="--team:${esc(t.color)}">
+        <div class="athlete a${t.rank}">${athleteSvg(t.id, t.rank)}</div>
+        <div class="step ${cls[t.rank]}">
+          <span class="place">${medal[t.rank]}</span>
+          <b>${fmtPts(t.pts)}</b><small>${esc(t.name)}</small>
+        </div>
       </div>`).join("")}</div>
     <div class="podium-stats">
       <div class="stat"><b>${mvp ? esc(mvp.name) : "–"}</b><small>⭐ MVP ${mvp ? fmtPts(mvp.pts) + " คะแนน" : ""}</small></div>
       <div class="stat"><b>${fmtNum(totalKm)}</b><small>กม. รวมทุกคน</small></div>
       <div class="stat"><b>${fmtNum(totalSteps)}</b><small>ก้าว รวมทุกคน</small></div>
-      <div class="stat"><b>${state.cards.length}</b><small>🃏 การ์ดที่ใช้</small></div>
-      ${bestDay ? `<div class="stat"><b>${fmtDateShort(bestDay.date)}</b><small>วันที่มันสุด ${fmtPts(bestDay.total)} คะแนน</small></div>` : ""}
+      <div class="stat"><b>${fmtPts(totalPts)}</b><small>คะแนน รวมทุกคน</small></div>
     </div>`;
   el.hidden = false;
 }
@@ -183,18 +207,6 @@ async function replayTrack() {
   replaying = false;
 }
 $("track-replay").addEventListener("click", replayTrack);
-
-// แถบเฉลย block ของเมื่อวาน (วันล่าสุดที่เฉลยแล้ว) — เห็นทันทีว่าใครโดน ใครทำ เสียเท่าไร
-function renderReveal() {
-  const el = $("reveal");
-  const yesterday = addDays(todayIso(), -1);
-  const blocks = state.cards.filter((c) => c.card === "block" && c.revealed && c.date === yesterday && !c.stacked);
-  const pending = state.cards.filter((c) => c.card === "block" && !c.revealed).length;
-  if (!blocks.length && !pending) return (el.hidden = true);
-  const items = blocks.map((c) => `<span class="rv-item"><span class="dot-badge mini" style="--team:${esc(c.team.color)}">${esc(c.team.id)}</span> block <b>${esc(c.target)}</b> <span class="dot-badge mini" style="--team:${esc(c.targetTeam.color)}">${esc(c.targetTeam.id)}</span> <span class="eff down">${c.effect ? fmtPts(c.effect) : "ไม่มีผล"}</span></span>`);
-  el.innerHTML = `<b>🛡️ เฉลย block เมื่อวาน (${fmtDateShort(yesterday)})</b> ${items.length ? items.join(" · ") : "<span class=\"dim\">ไม่มี</span>"}${pending ? ` <span class="dim">· วันนี้มี block รอเฉลย ${pending} ใบ</span>` : ""}`;
-  el.hidden = false;
-}
 
 // ── อันดับทีม ───────────────────────────────────────────────────────
 function renderBoard(teams, rules) {

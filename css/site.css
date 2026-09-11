@@ -216,6 +216,8 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 .foot { color: var(--muted); font-size: 0.78rem; padding: 20px 14px 32px; text-align: center; }
+.foot-link { display: inline-block; margin-left: 10px; color: var(--muted); text-decoration: underline dotted; }
+.foot-link:hover { color: var(--text); }
 
 @media (min-width: 640px) {
   body { font-size: 16px; }
@@ -466,10 +468,6 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .log.hl .eff.down { color: var(--danger); }
 .log.hl .eff.dim { color: var(--muted); font-weight: 400; }
 .cf-preview { font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px dashed var(--accent); }
-.cf-preview small { color: var(--muted); }
-.reveal { background: var(--surface); border-left: 4px solid var(--danger); border-radius: var(--radius); padding: 10px 14px; margin: 12px 0; font-size: 0.88rem; box-shadow: var(--shadow); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
-.reveal .rv-item { display: inline-flex; align-items: center; gap: 4px; }
-.reveal .eff.down { color: var(--danger); font-weight: 600; }
 .week-cards td.is-stacked { opacity: 0.45; }
 .week-cards td.is-stacked em { font-style: normal; color: var(--danger); }
 .btn-ghost { display: block; width: 100%; margin-top: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 10px; padding: 9px; font-size: 0.88rem; font-weight: 500; }
@@ -521,14 +519,30 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 @media (prefers-color-scheme: dark) { .podium-card { background: linear-gradient(160deg, #3a2f0f, var(--surface) 60%); } }
 .podium-card h2 { font-size: 1.3rem; margin-bottom: 4px; }
 .podium-card .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 14px; }
-.podium { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; align-items: end; }
-.podium .step { border-radius: 12px 12px 4px 4px; padding: 10px 6px 12px; color: #fff; display: grid; gap: 4px; justify-items: center; }
-.podium .step .medal { font-size: 2rem; line-height: 1; }
-.podium .step .badge { width: 44px; height: 44px; font-size: 1.2rem; box-shadow: 0 0 0 3px rgba(255,255,255,0.6); }
+.podium { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; align-items: end; margin-top: 8px; }
+.podium .col { display: grid; justify-items: center; align-content: end; }
+.podium .c1 { background: radial-gradient(closest-side, rgba(243,197,60,0.45), transparent 75%) top / 100% 70% no-repeat; } /* สปอตไลต์หลังแชมป์ */
+.podium .step { width: 100%; border-radius: 12px 12px 4px 4px; padding: 8px 6px 12px; color: #fff; display: grid; gap: 2px; justify-items: center; box-shadow: inset 0 3px 0 rgba(255,255,255,0.35); }
+.podium .step .place { font-size: 1.6rem; line-height: 1; }
 .podium .step b { font-size: 1.3rem; }
 .podium .step small { opacity: 0.9; font-size: 0.75rem; }
-.podium .s1 { background: linear-gradient(180deg, #f3c53c, #c9961a); min-height: 170px; }
-.podium .s2 { background: linear-gradient(180deg, #b8c2d6, #8f9bb3); min-height: 140px; }
-.podium .s3 { background: linear-gradient(180deg, #d19a5b, #b5722a); min-height: 120px; }
+.podium .s1 { background: linear-gradient(180deg, #f3c53c, #c9961a); min-height: 104px; }
+.podium .s2 { background: linear-gradient(180deg, #b8c2d6, #8f9bb3); min-height: 78px; }
+.podium .s3 { background: linear-gradient(180deg, #d19a5b, #b5722a); min-height: 60px; }
+/* นักกีฬาบนแท่น */
+.athlete { width: 70px; height: 91px; margin-bottom: -6px; position: relative; z-index: 1; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2)); }
+.athlete.a1 { width: 82px; height: 107px; animation: jump 1.4s ease-in-out infinite; }
+.athlete-svg { width: 100%; height: 100%; overflow: visible; stroke: var(--team); fill: none; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+.athlete-svg .head, .athlete-svg .jersey { fill: var(--team); stroke: none; }
+.athlete-svg .legs { stroke-width: 9; }
+.athlete-svg text { stroke: none; fill: #fff; font-weight: 700; font-size: 19px; font-family: inherit; }
+.athlete-svg .ribbon { stroke: #d62839; stroke-width: 3.5; }
+.athlete-svg .medal { stroke: #fff; stroke-width: 1.5; }
+.athlete-svg .wave { transform-box: view-box; transform-origin: 64px 38px; animation: wave 0.9s ease-in-out infinite alternate; }
+.athlete.a1 .athlete-svg .wave { animation-duration: 0.6s; }
+@keyframes wave { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes jump { 0%, 100% { transform: translateY(0); } 35%, 50% { transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .athlete, .athlete-svg .wave { animation: none; } }
+@media (min-width: 640px) { .athlete { width: 84px; height: 109px; } .athlete.a1 { width: 100px; height: 130px; } }
 .podium-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 14px; }
 .podium-stats .stat b { font-size: 1.1rem; }

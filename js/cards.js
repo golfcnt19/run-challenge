@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mtx41hjp";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtx41hjp";
-import { fmtDateLong } from "./format.js?v=mtx41hjp";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtx41hjp";
-import { ENTRY_URL } from "./config.js?v=mtx41hjp";
+import { loadAll } from "./sheets.js?v=mtx60r8i";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtx60r8i";
+import { fmtDateLong } from "./format.js?v=mtx60r8i";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtx60r8i";
+import { ENTRY_URL } from "./config.js?v=mtx60r8i";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -46,9 +46,9 @@ async function init() {
 // ── ประวัติการ์ด + สรุปผลต่อทีม ──────────────────────────────────────
 const signed = (n) => (n > 0 ? "+" : "") + fmtPts(n);
 function cardLine(c) {
-  const who = c.card === "carry" ? `${c.runner} → ${c.target}`
-    : c.card === "x2" ? c.runner
-    : c.revealed ? `${c.target} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
+  const who = c.card === "carry" ? `${esc(c.runner)} → ${esc(c.target)}`
+    : c.card === "x2" ? esc(c.runner)
+    : c.revealed ? `${esc(c.target)} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
   let eff;
   if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
   else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">ซ้อน</span>` : `<span class="eff dim">ไม่มีผล</span>`;
@@ -56,7 +56,7 @@ function cardLine(c) {
   return `<li>
     <span class="d">${fmtDateShort(c.date)}</span>
     <span class="dot-badge mini" style="--team:${esc(c.team.color)}">${esc(c.team.id)}</span>
-    <span class="hl-what">${CARDS[c.card].icon} ${esc(who)}<small class="hl-detail">${esc(c.detail)}</small></span>
+    <span class="hl-what">${CARDS[c.card].icon} ${who}${c.effect === null ? "" : `<small class="hl-detail">${esc(c.detail)}</small>`}</span>
     ${eff}
   </li>`;
 }
