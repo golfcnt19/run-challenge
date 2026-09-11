@@ -381,3 +381,9 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
   background: var(--surface-2); color: var(--text); border: 1.5px solid var(--line); font-size: 0.78rem;
 }
+
+/* ── rules with icons ─────────────────────────────── */
+.rules { list-style: none; padding-left: 0 !important; }
+.rules li { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; }
+.rules .ri { flex: 0 0 24px; text-align: center; font-size: 1.1rem; line-height: 1.3; }
+.rules-card .rules { padding: 0 14px 14px 14px; }

@@ -185,12 +185,12 @@ function countUp(ms = 900) {
 
 function renderRules(r) {
   $("rules").innerHTML = `
-    <li>วิ่งสวน / วิ่งลู่ <b>1 กม. = ${fmtPts(r.pointsPerRunKm)} คะแนน</b></li>
-    <li>เดิน <b>${fmtNum(r.walkStepsForFull)} ก้าว = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
-    <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
-    <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
-    <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</li>
-    <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
+    <li><span class="ri">🏃</span><span>วิ่งสวน / วิ่งลู่ <b>1 กม. = ${fmtPts(r.pointsPerRunKm)} คะแนน</b></span></li>
+    <li><span class="ri">🚶</span><span>เดิน <b>${fmtNum(r.walkStepsForFull)} ก้าว = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</span></li>
+    <li><span class="ri">🚴</span><span>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</span></li>
+    <li><span class="ri">🧮</span><span>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></span></li>
+    <li><span class="ri">👥</span><span>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</span></li>
+    <li><span class="ri">📸</span><span>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</span></li>`;
 }
 
 // ── รายวัน ─────────────────────────────────────────────────────────
