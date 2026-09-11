@@ -416,8 +416,8 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .card-done .big { font-size: 1.6rem; display: block; margin: 4px 0; }
 @keyframes shuffle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .card-done.is-rolling .big { animation: shuffle 0.25s ease-in-out infinite; }
-.rules-sub { margin-top: 8px !important; }
-.rules-in { padding-left: 18px; }
 .hero-links { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .hero-links .back { margin-bottom: 0; }
 .hero-actions .btn-entry + .btn-entry { flex: 0.8; }
+.rules-lead { margin: 0 14px 6px; font-size: 0.9rem; color: var(--muted); }
+.rules-lead b { color: var(--text); }
