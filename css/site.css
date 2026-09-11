@@ -189,6 +189,13 @@ button { font: inherit; cursor: pointer; }
 }
 .field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hint { color: var(--muted); font-size: 0.78rem; }
+.pin-wrap { position: relative; }
+.pin-wrap input { padding-right: 48px; }
+.btn-eye {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; font-size: 1.1rem; padding: 6px 10px; border-radius: 8px; opacity: 0.6;
+}
+.btn-eye:hover, .btn-eye[aria-pressed="true"] { opacity: 1; background: var(--line); }
 .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .seg button {
   border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 10px;

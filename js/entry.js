@@ -7,11 +7,11 @@ import { ENTRY_URL } from "./config.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const LS = { team: "rc-entry-team", pin: "rc-entry-pin" };
+// จำเฉพาะทีมที่เลือกล่าสุด — PIN ไม่จำ ต้องใส่ทุกครั้ง
+const LS = { team: "rc-entry-team" };
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
-  del: (k) => { try { localStorage.removeItem(k); } catch {} },
 };
 
 let teams = [];
@@ -31,7 +31,6 @@ async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
   $("date").value = todayIso();
   $("date").max = todayIso();
-  $("pin").value = store.get(LS.pin) || "";
   try {
     const data = await loadAll();
     const scored = computeScores(data);
@@ -102,9 +101,7 @@ function showError(msg, id = "form-error") {
 async function callApi(payload) {
   // ส่งเป็น text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight (Apps Script ไม่รองรับ OPTIONS)
   const res = await fetch(ENTRY_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
-  const out = await res.json();
-  if (out.code === "PIN") store.del(LS.pin);
-  return out;
+  return res.json();
 }
 
 async function submit(e) {
@@ -132,7 +129,6 @@ async function submit(e) {
   try {
     const out = await callApi(payload);
     if (!out.ok) return showError(out.error || "บันทึกไม่สำเร็จ");
-    store.set(LS.pin, payload.pin);
     store.set(LS.team, payload.team_id);
     entries.unshift({ ...out.entry, teamId: payload.team_id });
     renderRecent();
@@ -162,7 +158,6 @@ async function remove(idx, btn) {
     const out = await callApi({ action: "delete", team_id: en.teamId, pin, runner: en.runner, date: en.date, activity: en.activity, amount: en.amount });
     if (!out.ok) return showError(out.error || "ลบไม่สำเร็จ", "recent-error");
     entries.splice(idx, 1);
-    store.set(LS.pin, pin);
     renderRecent();
   } catch (err) {
     showError(`ลบไม่สำเร็จ: ${err.message}`, "recent-error");
@@ -187,6 +182,12 @@ $("activity").addEventListener("click", (e) => {
 $("recent-list").addEventListener("click", (e) => {
   const b = e.target.closest("[data-del]");
   if (b) remove(Number(b.dataset.del), b);
+});
+$("pin-toggle").addEventListener("click", () => {
+  const show = $("pin").type === "password";
+  $("pin").type = show ? "text" : "password";
+  $("pin-toggle").setAttribute("aria-pressed", show);
+  $("pin-toggle").setAttribute("aria-label", show ? "ซ่อน PIN" : "แสดง PIN");
 });
 $("form").addEventListener("submit", submit);
 init();

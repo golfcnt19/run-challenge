@@ -35,8 +35,10 @@
 
     <label class="field">
       <span>PIN ของทีม</span>
-      <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="ขอจากแอดมิน" required>
-      <small class="hint">จำไว้ในเครื่องนี้ ไม่ต้องกรอกซ้ำ</small>
+      <div class="pin-wrap">
+        <input type="password" id="pin" autocomplete="off" placeholder="ขอจากแอดมิน" required>
+        <button type="button" class="btn-eye" id="pin-toggle" aria-label="แสดง PIN" aria-pressed="false">👁</button>
+      </div>
     </label>
 
     <label class="field">
