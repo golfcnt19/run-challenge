@@ -10,6 +10,23 @@ export function parseDate(s) {
   return new Date(+m[1], +m[2] - 1, +m[3]);
 }
 
+// รับวันที่ที่ Google Sheets อาจส่งมาหลายแบบ → "YYYY-MM-DD" หรือ null ถ้าอ่านไม่ออก
+//   2026-09-15 · 2026-9-5 · 15/9/2026 · 15/09/2569 (พ.ศ.) · 9/15/2026 ถูกตีความเป็น d/m ก่อน ถ้าไม่ใช่ค่อยลอง m/d
+export function normalizeDate(s) {
+  const v = String(s || "").trim();
+  let m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(v);
+  let y, mo, d;
+  if (m) [y, mo, d] = [+m[1], +m[2], +m[3]];
+  else if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(v))) {
+    [d, mo, y] = [+m[1], +m[2], +m[3]];
+    if (d <= 12 && mo > 12) [d, mo] = [mo, d]; // ต้องเป็น m/d/y แน่ ๆ
+  } else return null;
+  if (y > 2400) y -= 543;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const p = (n) => String(n).padStart(2, "0");
+  return `${y}-${p(mo)}-${p(d)}`;
+}
+
 export function toIso(d) {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;

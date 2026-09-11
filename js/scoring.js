@@ -7,7 +7,7 @@
 //   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
 //   คะแนนทีม = ผลรวมคะแนนสมาชิก
 
-import { todayIso, addDays, daysInclusive } from "./format.js";
+import { todayIso, addDays, daysInclusive, normalizeDate } from "./format.js";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -99,12 +99,12 @@ export function computeScores(data, today = todayIso()) {
   data.runs.forEach((r, i) => {
     const line = i + 2; // แถวในชีต (มี header)
     if (!r.date && !r.runner && !r.amount) return;
-    const date = (r.date || "").slice(0, 10);
+    const date = normalizeDate(r.date);
     const key = (r.runner || "").trim().toLowerCase();
     const team = runnerTeam.get(key);
     const activity = normalizeActivity(r.activity);
     const amount = parseFloat(String(r.amount).replace(/,/g, ""));
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return warnings.push(`แถว ${line}: วันที่ "${r.date}" ไม่ใช่รูปแบบ YYYY-MM-DD`);
+    if (!date) return warnings.push(`แถว ${line}: อ่านวันที่ "${r.date}" ไม่ออก (ใช้ YYYY-MM-DD)`);
     if (!team) return warnings.push(`แถว ${line}: ไม่พบชื่อ "${r.runner}" ในทีมไหนเลย`);
     if (!activity) return warnings.push(`แถว ${line}: ไม่รู้จักกิจกรรม "${r.activity}"`);
     if (!Number.isFinite(amount) || amount <= 0) return warnings.push(`แถว ${line}: จำนวน "${r.amount}" ไม่ถูกต้อง`);
