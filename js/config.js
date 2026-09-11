@@ -5,7 +5,7 @@
 // 3. ก๊อป ID จาก URL  https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit  มาวางด้านล่าง
 // 4. เปลี่ยน USE_SAMPLE เป็น false
 
-export const USE_SAMPLE = true;
-export const SHEET_ID = "PASTE_SHEET_ID_HERE";
+export const USE_SAMPLE = false;
+export const SHEET_ID = "1CIUISs4ayf5PZqBtvMoFJaPzSsmefQ5a";
 
 export const TABS = { teams: "teams", runs: "runs", config: "config" };

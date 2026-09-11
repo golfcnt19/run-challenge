@@ -68,7 +68,7 @@ function renderBoard(teams, rules) {
   $("board").innerHTML = teams
     .map((t) => {
       const pct = t.maxPossible ? Math.min(100, (t.pts / t.maxPossible) * 100) : 0;
-      const medal = t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : t.rank;
+      const medal = t.pts > 0 && t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : t.rank;
       return `
       <li class="team-card" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
         <div class="rank r${t.rank}">${medal}</div>
