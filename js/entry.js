@@ -17,9 +17,10 @@ const store = {
 let teams = [];
 let rules = null;
 let entries = []; // ทุกรายการจากชีต (เรียงใหม่→เก่า) — อัปเดตในเครื่องเมื่อเพิ่ม/ลบ
+let sinceDate = ""; // วันแรกของช่วง 7 วันหลังสุด
 let teamId = store.get(LS.team) || "";
 let activity = "run";
-const RECENT_LIMIT = 15;
+const RECENT_DAYS = 7; // แสดงรายการของทีมเฉพาะ 7 วันหลังสุด
 const AMOUNT = {
   run:       { label: "ระยะทาง (กม.)", step: "0.01", ph: "เช่น 5.2",   hint: (r) => `1 กม. = ${r.pointsPerRunKm} คะแนน · เพดาน ${r.dailyCap}/วัน` },
   treadmill: { label: "ระยะทาง (กม.)", step: "0.01", ph: "เช่น 3",     hint: (r) => `ถ่ายรูปคู่ลู่ให้เห็นระยะส่งในกลุ่ม · 1 กม. = ${r.pointsPerRunKm} คะแนน` },
@@ -37,6 +38,7 @@ async function init() {
     rules = scored.rules;
     teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
     entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
+    sinceDate = scored.days.length ? scored.days[Math.max(0, scored.days.length - RECENT_DAYS)] : "";
     $("range").textContent = `${rules.title} · ${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)}`;
     $("date").min = rules.startDate;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
@@ -79,7 +81,7 @@ function renderRecent() {
   $("recent-card").hidden = !t;
   if (!t) return;
   $("recent-team").textContent = t.name;
-  const mine = entries.map((e, i) => [e, i]).filter(([e]) => e.teamId === teamId).slice(0, RECENT_LIMIT);
+  const mine = entries.map((e, i) => [e, i]).filter(([e]) => e.teamId === teamId && e.date >= sinceDate);
   $("recent-list").innerHTML = mine.length ? mine.map(([e, i]) => entryHtml(e, i)).join("") : `<li class="empty">ยังไม่มีรายการ</li>`;
 }
 
