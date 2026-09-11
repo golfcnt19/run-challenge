@@ -296,9 +296,10 @@ function renderTeam(t) {
     })
     .join("");
 
+  // รายการล่าสุด: เฉพาะ 7 วันหลังสุดของกิจกรรม
+  const since = state.days.length ? state.days[Math.max(0, state.days.length - 7)] : "";
   const log = state.entries
-    .filter((e) => e.team.id === t.id)
-    .slice(0, 30)
+    .filter((e) => e.team.id === t.id && e.date >= since)
     .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${ACTIVITIES[e.activity].icon} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</li>`)
     .join("");
 
@@ -321,7 +322,7 @@ function renderTeam(t) {
       <ol class="runners">${runners}</ol>
     </div>
     <div class="card">
-      <h2>รายการล่าสุด</h2>
+      <h2>รายการล่าสุด <small class="dim">7 วันหลังสุด</small></h2>
       ${log ? `<ul class="log">${log}</ul>` : `<p class="empty">ยังไม่มีรายการ</p>`}
     </div>`;
 }
