@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mtx036cz";
-import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js?v=mtx036cz";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtx036cz";
-import { ENTRY_URL } from "./config.js?v=mtx036cz";
+import { loadAll } from "./sheets.js?v=mtx0cwld";
+import { computeScores, ACTIVITIES, act, rawPoints } from "./scoring.js?v=mtx0cwld";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtx0cwld";
+import { ENTRY_URL } from "./config.js?v=mtx0cwld";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -70,10 +70,10 @@ function renderRunners() {
 }
 
 function entryHtml(e, idx) {
-  const a = ACTIVITIES[e.activity];
+  const a = act(e.activity);
   return `<li data-idx="${idx}">
     <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
-    <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.a.timed || activity === "walk" ? 0 : 2)} ${a.unit}</span>
+    <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
     <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
   </li>`;
 }
@@ -147,7 +147,7 @@ async function submit(e) {
   // กันมือลั่น: รายการเหมือนเดิมเป๊ะ (คน+วัน+กิจกรรม+จำนวน) มีอยู่แล้ว → ถามยืนยันก่อน
   const dup = entries.find((x) => x.runner === payload.runner && x.date === payload.date && x.activity === activity && Math.abs(Number(x.amount) - Number(payload.amount)) < 0.005);
   if (dup) {
-    const a = ACTIVITIES[activity];
+    const a = act(activity);
     if (!confirm(`${payload.runner} มีรายการ ${a.label} ${fmtNum(payload.amount, a.timed || activity === "walk" ? 0 : 2)} ${a.unit} ของวัน ${fmtDateShort(payload.date)} อยู่แล้ว
 
 กรอกซ้ำจริงใช่ไหม?`)) return;
@@ -181,8 +181,8 @@ async function remove(idx, btn) {
   showError("", "recent-error");
   const pin = $("pin").value.trim();
   if (!pin) return showError("ใส่ PIN ของทีมในฟอร์มด้านบนก่อนลบ", "recent-error");
-  const a = ACTIVITIES[en.activity];
-  if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, en.a.timed || activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
+  const a = act(en.activity);
+  if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, a.timed || en.activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
   btn.disabled = true;
   btn.textContent = "…";
   try {

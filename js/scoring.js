@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx036cz";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx0cwld";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -53,6 +53,8 @@ export const CARDS = {
   block: { icon: "🛡️", label: "Block" },
 };
 export const CARD_TYPES = Object.keys(CARDS);
+// ใช้แทน ACTIVITIES[x] ตรง ๆ — คืนค่า placeholder ถ้าไม่รู้จัก จะได้ไม่พังทั้งหน้าเพราะแถวเดียว
+export const act = (k) => ACTIVITIES[k] || { label: k || "?", unit: "", icon: "❔" };
 
 // วันจันทร์ของสัปดาห์ที่วันนั้นอยู่ (วีคเริ่มจันทร์) — สูตรเดียวกับ Code.gs
 export function weekKey(iso) {

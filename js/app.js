@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx036cz";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx036cz";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx036cz";
-import { USE_SAMPLE } from "./config.js?v=mtx036cz";
+import { loadAll } from "./sheets.js?v=mtx0cwld";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx0cwld";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx0cwld";
+import { USE_SAMPLE } from "./config.js?v=mtx0cwld";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -348,7 +348,7 @@ function renderTeam(t) {
 
   const runners = t.runners
     .map((r, i) => {
-      const parts = Object.entries(r.byActivity).map(([a, v]) => `${ACTIVITIES[a].icon} ${fmtNum(v, ACTIVITIES[a].timed || a === "walk" ? 0 : 1)} ${ACTIVITIES[a].unit}`);
+      const parts = Object.entries(r.byActivity).map(([a, v]) => `${act(a).icon} ${fmtNum(v, act(a).timed || a === "walk" ? 0 : 1)} ${act(a).unit}`);
       const pct = maxPerRunner ? Math.min(100, (r.pts / maxPerRunner) * 100) : 0;
       return `
       <li class="runner is-clickable" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">
@@ -366,7 +366,7 @@ function renderTeam(t) {
   const since = state.days.length ? state.days[Math.max(0, state.days.length - 7)] : "";
   const log = state.entries
     .filter((e) => e.team.id === t.id && e.date >= since)
-    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${ACTIVITIES[e.activity].icon} ${fmtNum(e.amount, ACTIVITIES[e.activity].timed || e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</li>`)
+    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${act(e.activity).icon} ${fmtNum(e.amount, act(e.activity).timed || e.activity === "walk" ? 0 : 2)} ${act(e.activity).unit}</li>`)
     .join("");
 
   $("team-detail").innerHTML = `
@@ -424,7 +424,7 @@ function toggleRunner(li) {
   box.innerHTML = list.length
     ? `<ul class="log">${list.map((e) => `<li>
         <span class="d">${fmtDateShort(e.date)}</span>
-        <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, ACTIVITIES[e.activity].timed || e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
+        <span>${act(e.activity).icon} ${act(e.activity).label} ${fmtNum(e.amount, act(e.activity).timed || e.activity === "walk" ? 0 : 2)} ${act(e.activity).unit}</span>
         ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
         <span class="a"><b>+${fmtPts(rawPoints(e.activity, e.amount, state.rules))}</b>${(r.raw[e.date] || 0) > state.rules.dailyCap ? `<small class="capped">วันนี้รวม ${fmtPts(r.raw[e.date])} → นับ ${fmtPts(state.rules.dailyCap)}</small>` : ""}${cardNote(r, e.date)}</span>
       </li>`).join("")}</ul>`
