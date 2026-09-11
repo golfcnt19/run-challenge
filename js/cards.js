@@ -44,6 +44,29 @@ function renderRules(r) {
     <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
     <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
     <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง</li>`;
+  const cap = r.dailyCap, p = fmtPts;
+  $("cards-examples").innerHTML = `
+    <div class="ex"><div class="ex-h">🎒 เดอะแบก</div>
+      <div class="ex-row"><span>Jay วิ่ง 15 กม. · Bird วิ่ง 2 กม.</span><span>ปกติ: Jay ${p(cap)} + Bird 2 = <b>${p(cap + 2)}</b></span></div>
+      <div class="ex-row"><span>ใช้การ์ด Jay → Bird</span><span>Jay ${p(cap)} + Bird ${p(cap)} = <b>${p(cap * 2)}</b> <small>(ส่วนเกิน 10 โอนได้แค่ ${p(cap)} · Bird รับได้แค่ถึง ${p(cap)})</small></span></div>
+      <div class="ex-row"><span>Jay วิ่ง 7 กม. → Bird</span><span>โอนได้ 2 (ส่วนที่เกิน ${p(cap)}) · Jay ${p(cap)} + Bird 2+2 = 4</span></div>
+      <div class="ex-row"><span>Jay วิ่ง 4 กม. → Bird</span><span><b>โอนไม่ได้</b> ไม่มีส่วนเกิน — การ์ดเสียเปล่า</span></div>
+    </div>
+    <div class="ex"><div class="ex-h">✖️2 คูณสอง</div>
+      <div class="ex-row"><span>กดการ์ด ระบบสุ่มได้ Koi · Koi วิ่ง 3 กม.</span><span>3 × 2 = <b>6</b> (เกิน ${p(cap)} ได้)</span></div>
+      <div class="ex-row"><span>สุ่มได้ Koi · Koi วิ่ง 5 กม. + เดิน 4,000 ก้าว</span><span>ดิบ 7 → เพดาน ${p(cap)} → ×2 = <b>${p(cap * 2)}</b> (สูงสุด)</span></div>
+      <div class="ex-row"><span>สุ่มได้ Koi · Koi ไม่ได้ส่งผลวันนั้น</span><span>0 × 2 = <b>0</b> — การ์ดเสียเปล่า</span></div>
+    </div>
+    <div class="ex"><div class="ex-h">🛡️ Block</div>
+      <div class="ex-row"><span>ทีม A block Golf (ทีม G) · Golf วิ่ง 8 กม.</span><span>วันนี้เว็บยังโชว์ Golf ${p(cap)} · <b>พรุ่งนี้กลายเป็น 0</b> และขึ้นป้าย 🛡️</span></div>
+      <div class="ex-row"><span>Golf โดน block และทีม G ใช้ x2 สุ่มได้ Golf พอดี</span><span>block ชนะ → <b>0</b> (x2 เสียเปล่า)</span></div>
+      <div class="ex-row"><span>ทีม A และทีม B block Golf วันเดียวกัน</span><span>Golf = 0 · ทั้งสองทีมเสียใบ ไม่รู้กัน</span></div>
+    </div>
+    <div class="ex"><div class="ex-h">📅 โควตา</div>
+      <div class="ex-row"><span>จันทร์ใช้ 🎒 · อังคารใช้ ✖️2 · พุธใช้ 🛡️</span><span>ครบ 3 ใบ พฤหัส–อาทิตย์ไม่มีใบเหลือ</span></div>
+      <div class="ex-row"><span>จันทร์ใช้ 🎒 แล้วอยากใช้ ✖️2 วันเดียวกัน</span><span><b>ไม่ได้</b> วันละ 1 ใบ — รอวันอังคาร</span></div>
+      <div class="ex-row"><span>วีคนี้ใช้แค่ 1 ใบ</span><span>อีก 2 ใบ<b>ไม่ทบ</b>ไปวีคหน้า วีคใหม่ได้ 3 ใบใหม่</span></div>
+    </div>`;
 }
 
 function renderChips() {

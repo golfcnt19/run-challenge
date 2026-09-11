@@ -421,3 +421,16 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .hero-actions .btn-entry + .btn-entry { flex: 0.8; }
 .rules-lead { margin: 0 14px 6px; font-size: 0.9rem; color: var(--muted); }
 .rules-lead b { color: var(--text); }
+
+/* ── cards: how-to + examples ─────────────────────── */
+.howto { margin: 0; padding: 0 14px 12px 32px; font-size: 0.9rem; color: var(--muted); }
+.howto li { margin: 4px 0; }
+.howto b { color: var(--text); }
+.rules-card > .hint { margin: 0 14px 14px; }
+.examples { padding: 0 14px 14px; display: grid; gap: 12px; }
+.ex-h { font-weight: 600; margin-bottom: 4px; }
+.ex-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+.ex-row:last-child { border-bottom: 0; }
+.ex-row > span:first-child { color: var(--muted); }
+.ex-row small { color: var(--muted); font-size: 0.75rem; }
+@media (max-width: 480px) { .ex-row { grid-template-columns: 1fr; gap: 2px; } .ex-row > span:last-child { padding-left: 10px; } }
