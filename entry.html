@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>กรอกผล — Run Challenge</title>
+<title>กรอกผล · การ์ด — Run Challenge</title>
 <meta name="theme-color" content="#4f46e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -21,7 +21,7 @@
 <header class="hero hero-compact">
   <div class="wrap">
     <a class="back" href="./">‹ ตารางคะแนน</a>
-    <h1>✏️ กรอกผล</h1>
+    <h1>✏️ กรอกผล · 🃏 การ์ด</h1>
     <p class="hero-range" id="range">—</p>
   </div>
 </header>
@@ -32,7 +32,7 @@
     (วิธีอยู่ใน <code>apps-script/Code.gs</code>)
   </div>
 
-  <form class="card form" id="form" novalidate>
+  <div class="card form" id="who-card">
     <div class="field">
       <span>ทีม</span>
       <div class="chips" id="team-chips"></div>
@@ -45,7 +45,25 @@
         <button type="button" class="btn-eye" id="pin-toggle" aria-label="แสดง PIN" aria-pressed="false">👁</button>
       </div>
     </div>
+  </div>
 
+  <nav class="tabs" role="tablist" aria-label="โหมด">
+    <button class="tab is-active" role="tab" data-mode="entry" aria-selected="true">✏️ กรอกผล</button>
+    <button class="tab" role="tab" data-mode="cards" aria-selected="false">🃏 การ์ดพิเศษ</button>
+  </nav>
+
+  <p class="empty" id="no-team">เลือกทีมด้านบนก่อน</p>
+
+  <div class="card" id="cards-card" hidden>
+    <div class="track-head"><h2>🃏 การ์ดพิเศษ <span id="cards-team"></span></h2><small id="cards-week"></small></div>
+    <p class="hint">วีคละ 3 ใบ (ชนิดละใบ) · วันละ 1 ใบ · ใช้กับวันนี้เท่านั้น · ใช้แล้วยกเลิกไม่ได้</p>
+    <div class="card-grid" id="card-grid"></div>
+    <div class="card-form" id="card-form" hidden></div>
+    <div class="alert" id="card-error" hidden></div>
+    <div class="card-done" id="card-done" hidden></div>
+  </div>
+
+  <form class="card form" id="form" novalidate>
     <label class="field">
       <span>ชื่อ</span>
       <select id="runner" required><option value="">— เลือกทีมก่อน —</option></select>
@@ -81,15 +99,6 @@
     <div class="alert" id="form-error" hidden></div>
     <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
   </form>
-
-  <div class="card" id="cards-card" hidden>
-    <div class="track-head"><h2>🃏 การ์ดพิเศษ <span id="cards-team"></span></h2><small id="cards-week"></small></div>
-    <p class="hint">วีคละ 3 ใบ (ชนิดละใบ) · วันละ 1 ใบ · ใช้กับวันนี้เท่านั้น · ใช้แล้วยกเลิกไม่ได้</p>
-    <div class="card-grid" id="card-grid"></div>
-    <div class="card-form" id="card-form" hidden></div>
-    <div class="alert" id="card-error" hidden></div>
-    <div class="card-done" id="card-done" hidden></div>
-  </div>
 
   <div class="card" id="recent-card" hidden>
     <h2>รายการล่าสุดของทีม <span id="recent-team"></span> <small class="dim">7 วันหลังสุด</small></h2>

@@ -21,6 +21,7 @@ let sinceDate = ""; // วันแรกของช่วง 7 วันหล
 let cardState = {}; // จาก computeScores: ต่อทีม { used: {carry: date…}, usedToday, left }
 let rawData = null; // ข้อมูลชีตดิบ เก็บไว้คำนวณสถานะการ์ดใหม่หลังใช้
 let pickedCard = null;
+let mode = "entry"; // entry | cards
 let teamId = store.get(LS.team) || "";
 let activity = "run";
 const RECENT_DAYS = 7; // แสดงรายการของทีมเฉพาะ 7 วันหลังสุด
@@ -84,7 +85,7 @@ function entryHtml(e, idx) {
 
 function renderRecent() {
   const t = teams.find((x) => x.id === teamId);
-  $("recent-card").hidden = !t;
+  applyMode();
   if (!t) return;
   $("recent-team").textContent = t.name;
   const mine = entries.map((e, i) => [e, i]).filter(([e]) => e.teamId === teamId && e.date >= sinceDate);
@@ -115,9 +116,22 @@ const CARD_DESC = {
   block: "เลือกทีมอื่นและคน 1 คน คะแนนวันนี้ของเขา = 0 · เฉลยหลังจบวัน อีกฝ่ายจะยังไม่รู้",
 };
 
+function applyMode() {
+  const t = teams.find((x) => x.id === teamId);
+  document.querySelectorAll(".tabs .tab").forEach((b) => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle("is-active", on);
+    b.setAttribute("aria-selected", on);
+  });
+  $("form").hidden = mode !== "entry";
+  $("recent-card").hidden = mode !== "entry" || !t;
+  $("cards-card").hidden = mode !== "cards" || !t;
+  $("no-team").hidden = Boolean(t);
+}
+
 function renderCards() {
   const t = teams.find((x) => x.id === teamId);
-  $("cards-card").hidden = !t;
+  applyMode();
   if (!t) return;
   const cs = cardState[t.id] || { used: {}, usedToday: false, left: CARD_TYPES };
   $("cards-team").textContent = t.name;
@@ -209,6 +223,14 @@ async function useCard() {
   }
 }
 
+document.querySelector(".tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-mode]");
+  if (!b) return;
+  mode = b.dataset.mode;
+  pickedCard = null;
+  applyMode();
+  if (mode === "cards") renderCards();
+});
 $("card-grid").addEventListener("click", (e) => {
   const b = e.target.closest("[data-card]");
   if (!b || b.disabled) return;
