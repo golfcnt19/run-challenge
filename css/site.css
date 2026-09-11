@@ -324,3 +324,31 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .table .star-cell { text-align: left; }
 .table .star-cell small { color: var(--muted); }
 @media (max-width: 480px) { .day-summary { grid-template-columns: 1fr 1fr; } }
+
+/* ── runner expand ────────────────────────────────── */
+.runner.is-clickable { cursor: pointer; }
+.runner.is-clickable .name::after { content: "›"; color: var(--muted); font-weight: 400; transition: transform 0.2s; display: inline-block; margin-left: 8px; }
+.runner.is-open .name::after { transform: rotate(90deg); }
+.runner-log { grid-column: 1 / -1; background: var(--surface-2); border-radius: 10px; padding: 4px 12px; margin-top: 4px; }
+.runner-log .log li { border-color: var(--line); font-size: 0.84rem; }
+.runner-log .a b { font-weight: 700; }
+.runner-log .a small { color: var(--muted); font-size: 0.72rem; }
+
+/* ── compact hero + collapsible rules ─────────────── */
+.hero { padding: 14px 0 12px; }
+.hero-kicker { display: none; }
+.hero h1 { font-size: 1.35rem; }
+.hero-range { margin: 0 0 8px; font-size: 0.82rem; }
+.progress-bar { height: 8px; }
+.progress-meta { margin-top: 4px; font-size: 0.78rem; }
+.updated { margin: 4px 0 0; font-size: 0.72rem; opacity: 0.8; }
+.hero-actions { margin-top: 8px; }
+.hero-actions .btn-refresh, .hero-actions .btn-entry { padding: 7px 10px; font-size: 0.85rem; }
+@media (min-width: 640px) { .hero { padding: 22px 0 18px; } .hero h1 { font-size: 2rem; } .hero-kicker { display: block; } }
+.rules-card { padding: 0; }
+.rules-card summary { list-style: none; cursor: pointer; padding: 14px; display: flex; align-items: center; justify-content: space-between; }
+.rules-card summary::-webkit-details-marker { display: none; }
+.rules-card summary h2 { margin: 0; }
+.rules-card summary::after { content: "▸"; color: var(--muted); transition: transform 0.2s; }
+.rules-card[open] summary::after { transform: rotate(90deg); }
+.rules-card .rules { padding: 0 14px 14px 34px; margin: 0; }

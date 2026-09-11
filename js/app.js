@@ -267,12 +267,13 @@ function renderTeam(t) {
       const parts = Object.entries(r.byActivity).map(([a, v]) => `${ACTIVITIES[a].icon} ${fmtNum(v, a === "walk" ? 0 : 1)} ${ACTIVITIES[a].unit}`);
       const pct = maxPerRunner ? Math.min(100, (r.pts / maxPerRunner) * 100) : 0;
       return `
-      <li class="runner">
+      <li class="runner is-clickable" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">
         <span class="n">${i + 1}</span>
         <div><div class="name">${esc(r.name)}</div>
           <div class="detail">ส่งผล ${r.daysActive}/${daysElapsed} วัน${parts.length ? " · " + parts.join(" · ") : ""}</div></div>
         <div class="pts">${fmtPts(r.pts)}<small>คะแนน</small></div>
         <div class="bar"><span style="width:${pct}%"></span></div>
+        <div class="runner-log" hidden></div>
       </li>`;
     })
     .join("");
@@ -307,6 +308,40 @@ function renderTeam(t) {
     </div>`;
 }
 
+// แตะชื่อสมาชิก → กางรายการผลของคนนั้น (วันที่ · กิจกรรม · จำนวน · คะแนนวันนั้น)
+function toggleRunner(li) {
+  const name = li.dataset.runner;
+  const box = li.querySelector(".runner-log");
+  const open = box.hidden;
+  li.closest(".runners").querySelectorAll(".runner").forEach((o) => {
+    o.querySelector(".runner-log").hidden = true;
+    o.classList.remove("is-open");
+    o.setAttribute("aria-expanded", "false");
+  });
+  if (!open) return;
+  const r = state.runners.find((x) => x.name === name);
+  const list = state.entries.filter((e) => e.runner === name);
+  box.innerHTML = list.length
+    ? `<ul class="log">${list.map((e) => `<li>
+        <span class="d">${fmtDateShort(e.date)}</span>
+        <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
+        ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
+        <span class="a"><b>${fmtPts(r.days[e.date] || 0)}</b> <small>คะแนนวันนั้น</small></span>
+      </li>`).join("")}</ul>`
+    : `<p class="empty">ยังไม่มีรายการ</p>`;
+  box.hidden = false;
+  li.classList.add("is-open");
+  li.setAttribute("aria-expanded", "true");
+}
+$("team-detail").addEventListener("click", (e) => {
+  const li = e.target.closest(".runner[data-runner]");
+  if (li) toggleRunner(li);
+});
+$("team-detail").addEventListener("keydown", (e) => {
+  const li = e.target.closest(".runner[data-runner]");
+  if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleRunner(li); }
+});
+
 // ── chart helpers ──────────────────────────────────────────────────
 function drawChart(id, cfg) {
   charts[id]?.destroy();
@@ -333,7 +368,6 @@ function showTab(name) {
   document.querySelectorAll(".panel").forEach((p) => (p.hidden = p.id !== `panel-${name}`));
   // chart ที่วาดตอน panel ซ่อนอยู่จะมีขนาด 0 ต้อง resize ตอนโชว์
   Object.values(charts).forEach((c) => c.resize());
-  try { localStorage.setItem("rc-tab", name); } catch {}
 }
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -357,7 +391,4 @@ function openTeam(el) {
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => state && render(new Date()));
 
-let saved = null;
-try { saved = localStorage.getItem("rc-tab"); } catch {}
-if (saved && document.querySelector(`.tab[data-tab="${saved}"]`)) showTab(saved);
 refresh();
