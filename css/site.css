@@ -360,3 +360,12 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .lane.is-leader .lane-run .lane-line { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 18px); opacity: 0.6; }
 .lane.is-leader .lane-pts { color: var(--gold); }
 @media (min-width: 640px) { .track { --label-w: 112px; } }
+
+/* ── track zoom mode ──────────────────────────────── */
+.track-head { flex-wrap: wrap; }
+.seg-mini { display: inline-flex; grid-template-columns: none; gap: 4px; }
+.seg-mini button { display: inline-block; padding: 4px 10px; font-size: 0.75rem; border-radius: 999px; line-height: 1.4; }
+.track-note { display: block; color: var(--muted); font-size: 0.72rem; margin: 2px 0 6px; }
+.axis-break { position: absolute; left: calc(var(--label-w) - 6px); top: 0; bottom: 18px; display: flex; align-items: center; color: var(--muted); font-size: 0.9rem; letter-spacing: -1px; pointer-events: none; }
+.finish.is-far { opacity: 0.3; }
+.finish.is-far::after { opacity: 1; }

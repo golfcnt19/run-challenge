@@ -53,7 +53,14 @@
   <section class="panel" id="panel-board" role="tabpanel">
     <ol class="board" id="board"></ol>
     <div class="card track-card">
-      <div class="track-head"><h2>🏁 สนามแข่ง</h2><small id="track-note"></small></div>
+      <div class="track-head">
+        <h2>🏁 สนามแข่ง</h2>
+        <div class="seg seg-mini" id="track-mode" role="radiogroup">
+          <button type="button" data-v="zoom" class="is-active">🔍 ซูม</button>
+          <button type="button" data-v="full">🏁 เต็มสนาม</button>
+        </div>
+      </div>
+      <small class="track-note" id="track-note"></small>
       <div class="track" id="track"></div>
     </div>
     <div class="card" id="top-runners-card">

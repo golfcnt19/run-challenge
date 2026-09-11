@@ -112,19 +112,36 @@ const runnerSvg = () => `<svg class="sprint" viewBox="0 0 120 100" aria-hidden="
   <g class="pose p2"><path d="${SPRINT_POSES[1].arms}"/><path d="${SPRINT_POSES[1].legs}"/></g>
 </svg>`;
 
-// สนามแข่ง: ตำแหน่ง = คะแนน ÷ คะแนนเต็มทั้งกิจกรรม (สเกลจริง วันแรก ๆ ทุกทีมอยู่ต้นสนาม) เส้นประ = วันที่ผ่านไป
+// สนามแข่ง 2 โหมด
+//   zoom: ขยายช่วง [ทีมท้าย .. ทีมนำ] ให้เต็มเลน (มี ⋯ ตัดแกนซ้าย, ธงจางบอกระยะที่เหลือ) — เห็นระยะห่างระหว่างทีมชัด
+//   full: ตำแหน่ง = คะแนน ÷ คะแนนเต็มทั้งกิจกรรม (สเกลจริง) เส้นประ = วันที่ผ่านไป
+let trackMode = "zoom";
+try { trackMode = localStorage.getItem("rc-track") || "zoom"; } catch {}
+
 function renderTrack(teams, rules) {
   const { totalDays, daysElapsed } = state;
   const members = Math.max(1, ...teams.map((t) => t.members.length));
   const finish = members * rules.dailyCap * totalDays;
   const leader = Math.max(0, ...teams.map((t) => t.pts));
-  const windowMax = finish;
-  const pacePct = totalDays ? Math.min(97, (daysElapsed / totalDays) * 100) : 0;
-  $("track-note").textContent = `🏁 เส้นชัย ${fmtNum(finish)} คะแนน · ผู้นำอีก ${fmtNum(Math.ceil(finish - leader))}`;
+  const lowest = Math.min(...teams.map((t) => t.pts));
+  const zoom = trackMode === "zoom" && leader > 0;
+  // ช่วงที่มองเห็น
+  let lo = 0, hi = finish;
+  if (zoom) {
+    const span = Math.max(leader - lowest, leader * 0.15, 1);
+    lo = Math.max(0, lowest - span * 0.25);
+    hi = leader + span * 0.35;
+  }
+  const pos = (v) => Math.min(97, Math.max(0, ((v - lo) / (hi - lo)) * 100));
+  const pacePct = zoom ? -1 : (totalDays ? Math.min(97, (daysElapsed / totalDays) * 100) : 0);
+  $("track-note").textContent = zoom
+    ? `ซูมช่วง ${fmtPts(lowest)} – ${fmtPts(leader)} คะแนน · 🏁 เส้นชัย ${fmtNum(finish)} ผู้นำอีก ${fmtNum(Math.ceil(finish - leader))}`
+    : `สเกลจริง · 🏁 เส้นชัย ${fmtNum(finish)} คะแนน · ผู้นำอีก ${fmtNum(Math.ceil(finish - leader))} · เส้นประ = วันที่ผ่านไป`;
+  $("track").classList.toggle("is-zoom", zoom);
   $("track").innerHTML = [...teams]
     .sort((x, y) => x.id.localeCompare(y.id)) // เลนเรียง A–G คงที่ ไม่สลับตามอันดับ
     .map((t) => {
-      const pct = Math.min(97, (t.pts / windowMax) * 100);
+      const pct = pos(t.pts);
       const rankMark = t.pts > 0 && t.rank <= 3 ? ["🥇", "🥈", "🥉"][t.rank - 1] : `<span class="lane-rank-n">${t.rank}</span>`;
       return `<div class="lane ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}">
         <div class="lane-label"><span class="lane-rank">${rankMark}</span><span class="dot-badge">${esc(t.id)}</span><span class="lane-pts">${fmtPts(t.pts)}</span></div>
@@ -136,7 +153,7 @@ function renderTrack(teams, rules) {
         </div>
       </div>`;
     })
-    .join("") + `<div class="pace" style="left:calc(var(--label-w) + (100% - var(--label-w) - 44px) * ${(pacePct / 100).toFixed(4)})"><span>วันที่ ${daysElapsed}</span></div><div class="finish" aria-hidden="true"></div>`;
+    .join("") + (zoom ? `<div class="axis-break" aria-hidden="true">⋯</div>` : `<div class="pace" style="left:calc(var(--label-w) + (100% - var(--label-w) - 44px) * ${(pacePct / 100).toFixed(4)})"><span>วันที่ ${daysElapsed}</span></div>`) + `<div class="finish ${zoom ? "is-far" : ""}" aria-hidden="true"></div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.querySelectorAll(".runner-dot").forEach((d) => (d.style.left = `${d.dataset.pct}%`));
   }));
@@ -373,6 +390,14 @@ function showTab(name) {
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 $("refresh").addEventListener("click", refresh);
+$("track-mode").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]");
+  if (!b || !state) return;
+  trackMode = b.dataset.v;
+  try { localStorage.setItem("rc-track", trackMode); } catch {}
+  document.querySelectorAll("#track-mode button").forEach((x) => x.classList.toggle("is-active", x.dataset.v === trackMode));
+  renderTrack(state.teams, state.rules);
+});
 $("board").addEventListener("click", (e) => openTeam(e.target.closest("[data-team]")));
 $("board").addEventListener("keydown", (e) => e.key === "Enter" && openTeam(e.target.closest("[data-team]")));
 $("team-chips").addEventListener("click", (e) => {
@@ -392,4 +417,5 @@ function openTeam(el) {
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => state && render(new Date()));
 
+document.querySelectorAll("#track-mode button").forEach((x) => x.classList.toggle("is-active", x.dataset.v === trackMode));
 refresh();
