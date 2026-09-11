@@ -181,7 +181,7 @@ function renderTeam(t) {
       <li class="runner">
         <span class="n">${i + 1}</span>
         <div><div class="name">${esc(r.name)}</div>
-          <div class="detail">ส่งผล ${r.daysActive}/${daysElapsed} วัน · ครบ ${fmtPts(rules.dailyCap)} คะแนน ${r.fullDays} วัน${parts.length ? " · " + parts.join(" · ") : ""}</div></div>
+          <div class="detail">ส่งผล ${r.daysActive}/${daysElapsed} วัน${parts.length ? " · " + parts.join(" · ") : ""}</div></div>
         <div class="pts">${fmtPts(r.pts)}<small>คะแนน</small></div>
         <div class="bar"><span style="width:${pct}%"></span></div>
       </li>`;
