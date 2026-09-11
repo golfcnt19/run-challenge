@@ -9,3 +9,7 @@ export const USE_SAMPLE = false;
 export const SHEET_ID = "1CIUISs4ayf5PZqBtvMoFJaPzSsmefQ5a";
 
 export const TABS = { teams: "teams", runs: "runs", config: "config" };
+
+// URL เว็บแอปของ Apps Script (ลงท้าย /exec) สำหรับหน้า entry.html — ดูวิธีได้ใน apps-script/Code.gs
+// ปล่อยว่างไว้ = หน้ากรอกยังใช้ไม่ได้ (จะขึ้นข้อความบอกวิธีตั้งค่า)
+export const ENTRY_URL = "";

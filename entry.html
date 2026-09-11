@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>กรอกผล — Run Challenge</title>
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234f46e5'/><text x='16' y='23' font-size='18' text-anchor='middle'>✏️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<header class="hero hero-compact">
+  <div class="wrap">
+    <a class="back" href="./">‹ ตารางคะแนน</a>
+    <h1>✏️ กรอกผล</h1>
+    <p class="hero-range" id="range">—</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="alert" id="setup" hidden>
+    ยังไม่ได้ตั้งค่าตัวรับข้อมูล — วาง URL เว็บแอปของ Apps Script ใน <code>js/config.js</code> ที่ <code>ENTRY_URL</code>
+    (วิธีอยู่ใน <code>apps-script/Code.gs</code>)
+  </div>
+
+  <form class="card form" id="form" novalidate>
+    <label class="field">
+      <span>ทีม</span>
+      <div class="chips" id="team-chips"></div>
+    </label>
+
+    <label class="field">
+      <span>PIN ของทีม</span>
+      <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="ขอจากแอดมิน" required>
+      <small class="hint">จำไว้ในเครื่องนี้ ไม่ต้องกรอกซ้ำ</small>
+    </label>
+
+    <label class="field">
+      <span>ชื่อ</span>
+      <select id="runner" required><option value="">— เลือกทีมก่อน —</option></select>
+    </label>
+
+    <label class="field">
+      <span>วันที่</span>
+      <input type="date" id="date" required>
+    </label>
+
+    <div class="field">
+      <span>กิจกรรม</span>
+      <div class="seg" id="activity" role="radiogroup">
+        <button type="button" data-v="run" class="is-active">🏃 วิ่งสวน</button>
+        <button type="button" data-v="treadmill">🏃‍♂️ วิ่งลู่</button>
+        <button type="button" data-v="walk">🚶 เดิน</button>
+        <button type="button" data-v="bike">🚴 ปั่น</button>
+      </div>
+    </div>
+
+    <label class="field">
+      <span id="amount-label">ระยะทาง (กม.)</span>
+      <input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="เช่น 5.2" required>
+      <small class="hint" id="amount-hint"></small>
+    </label>
+
+    <label class="field">
+      <span>หมายเหตุ <em>(ไม่บังคับ)</em></span>
+      <input type="text" id="note" maxlength="200" placeholder="เช่น สวนรถไฟ">
+    </label>
+
+    <div class="alert" id="form-error" hidden></div>
+    <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
+  </form>
+
+  <div class="card" id="done-card" hidden>
+    <h2>✅ บันทึกแล้ว</h2>
+    <ul class="log" id="done-list"></ul>
+    <p class="hint">ตารางคะแนนจะอัปเดตเมื่อกด ↻ รีเฟรช ในหน้าหลัก</p>
+  </div>
+</main>
+
+<footer class="foot wrap">กติกา: ไม่เกิน 5 คะแนน/คน/วัน · แก้ไข/ลบรายการ แจ้งแอดมิน</footer>
+
+<script type="module" src="js/entry.js"></script>
+</body>
+</html>

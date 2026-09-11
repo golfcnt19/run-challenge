@@ -171,6 +171,36 @@ button { font: inherit; cursor: pointer; }
 .log .a { margin-left: auto; white-space: nowrap; }
 .log .note { color: var(--muted); font-size: 0.78rem; }
 
+/* ── entry form ───────────────────────────────────── */
+.hero-compact { padding: 16px 0 14px; }
+.hero .back, .hero .btn-entry {
+  display: inline-block; color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 500;
+  background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 999px; padding: 4px 12px;
+}
+.hero .back { margin-bottom: 8px; }
+.hero .btn-entry { margin-left: auto; }
+.form { display: grid; gap: 16px; }
+.field { display: grid; gap: 6px; }
+.field > span { font-weight: 600; font-size: 0.9rem; }
+.field em { font-style: normal; font-weight: 400; color: var(--muted); }
+.field input, .field select {
+  font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+.field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 0.78rem; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg button {
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 10px;
+  padding: 10px 4px; font-size: 0.85rem; white-space: nowrap;
+}
+.seg button.is-active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-primary {
+  border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 12px; padding: 13px; font-weight: 600; font-size: 1rem;
+}
+.btn-primary[disabled] { opacity: 0.6; cursor: wait; }
+code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 4px; }
+
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 .foot { color: var(--muted); font-size: 0.78rem; padding: 20px 14px 32px; text-align: center; }
 
