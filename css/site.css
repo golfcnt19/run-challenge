@@ -225,3 +225,16 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   .board { grid-template-columns: 1fr 1fr; }
   .team-card { grid-template-columns: auto auto 1fr auto; }
 }
+
+/* ── mobile fixes: ปุ่มไม่ล้น/ไม่เบี้ยว ─────────────── */
+.hero-actions { display: flex; gap: 8px; margin-top: 10px; }
+.hero-actions .btn-refresh, .hero-actions .btn-entry {
+  flex: 1; text-align: center; padding: 9px 10px; font-size: 0.9rem; margin: 0; line-height: 1.4;
+}
+.seg button { display: grid; gap: 2px; justify-items: center; padding: 8px 2px; font-size: 0.8rem; line-height: 1.2; white-space: normal; }
+.seg button .ic { font-size: 1.35rem; line-height: 1; }
+@media (max-width: 420px) {
+  .tab { font-size: 0.84rem; padding: 9px 2px; }
+  .chip { padding: 6px 12px; font-size: 0.9rem; }
+}
+@media (min-width: 640px) { .hero-actions { max-width: 380px; } }
