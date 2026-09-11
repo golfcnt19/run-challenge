@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtwqecck";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwqecck";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwqecck";
-import { USE_SAMPLE } from "./config.js?v=mtwqecck";
+import { loadAll } from "./sheets.js?v=mtwqtung";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwqtung";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwqtung";
+import { USE_SAMPLE } from "./config.js?v=mtwqtung";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,6 +55,7 @@ function render(loadedAt) {
   $("warn-count").textContent = warnings.length;
   $("warn-list").innerHTML = warnings.map((w) => `<li>${esc(w)}</li>`).join("");
 
+  renderReveal();
   renderTrack(teams, rules);
   renderBoard(teams, rules);
   renderWeekCards(teams);
@@ -65,6 +66,18 @@ function render(loadedAt) {
   renderTeamChips(teams);
   renderTeam(teams.find((t) => t.id === selectedTeam));
   $("foot-note").textContent = `${teams.length} ทีม · ${state.runners.length} คน · ${state.entries.length} รายการ`;
+}
+
+// แถบเฉลย block ของเมื่อวาน (วันล่าสุดที่เฉลยแล้ว) — เห็นทันทีว่าใครโดน ใครทำ เสียเท่าไร
+function renderReveal() {
+  const el = $("reveal");
+  const yesterday = addDays(todayIso(), -1);
+  const blocks = state.cards.filter((c) => c.card === "block" && c.revealed && c.date === yesterday && !c.stacked);
+  const pending = state.cards.filter((c) => c.card === "block" && !c.revealed).length;
+  if (!blocks.length && !pending) return (el.hidden = true);
+  const items = blocks.map((c) => `<span class="rv-item"><span class="dot-badge mini" style="--team:${esc(c.team.color)}">${esc(c.team.id)}</span> block <b>${esc(c.target)}</b> <span class="dot-badge mini" style="--team:${esc(c.targetTeam.color)}">${esc(c.targetTeam.id)}</span> <span class="eff down">${c.effect ? fmtPts(c.effect) : "ไม่มีผล"}</span></span>`);
+  el.innerHTML = `<b>🛡️ เฉลย block เมื่อวาน (${fmtDateShort(yesterday)})</b> ${items.length ? items.join(" · ") : "<span class=\"dim\">ไม่มี</span>"}${pending ? ` <span class="dim">· วันนี้มี block รอเฉลย ${pending} ใบ</span>` : ""}`;
+  el.hidden = false;
 }
 
 // ── อันดับทีม ───────────────────────────────────────────────────────

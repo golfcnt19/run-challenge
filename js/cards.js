@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mtwqecck";
-import { computeScores, CARDS, CARD_TYPES, weekKey } from "./scoring.js?v=mtwqecck";
-import { fmtDateLong } from "./format.js?v=mtwqecck";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtwqecck";
-import { ENTRY_URL } from "./config.js?v=mtwqecck";
+import { loadAll } from "./sheets.js?v=mtwqtung";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtwqtung";
+import { fmtDateLong } from "./format.js?v=mtwqtung";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtwqtung";
+import { ENTRY_URL } from "./config.js?v=mtwqtung";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -51,7 +51,7 @@ function cardLine(c) {
     : c.revealed ? `${c.target} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
   let eff;
   if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
-  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">ซ้อน</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   return `<li>
     <span class="d">${fmtDateShort(c.date)}</span>
@@ -189,7 +189,7 @@ function renderCardForm() {
     const others = teams.filter((x) => x.id !== t.id);
     inner += `<label class="field"><span>ทีมที่จะ block</span><select id="cf-team"><option value="">— เลือกทีม —</option>${others.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select></label><label class="field"><span>คนที่จะ block</span><select id="cf-target" disabled><option value="">— เลือกทีมก่อน —</option></select></label>`;
   }
-  inner += `<button type="button" class="btn-primary" id="cf-submit">${pickedCard === "x2" ? "🎲 สุ่มแล้วใช้การ์ด" : "ใช้การ์ด"}</button>`;
+  inner += `<div class="cf-preview" id="cf-preview"></div><button type="button" class="btn-primary" id="cf-submit">${pickedCard === "x2" ? "🎲 สุ่มแล้วใช้การ์ด" : "ใช้การ์ด"}</button>`;
   box.innerHTML = inner;
   box.hidden = false;
   if (pickedCard === "block") $("cf-team").addEventListener("change", () => {
@@ -199,7 +199,42 @@ function renderCardForm() {
     sel.disabled = !x;
   });
   $("cf-submit").addEventListener("click", useCard);
+  box.querySelectorAll("select").forEach((s) => s.addEventListener("change", renderPreview));
+  renderPreview();
 }
+
+// คะแนนดิบวันนี้ของคน (ก่อนเพดาน) จากรายการที่โหลดมา
+function rawToday(name) {
+  const today = todayIso();
+  return scored.entries.filter((e) => e.runner === name && e.date === today).reduce((s, e) => s + e.raw, 0);
+}
+
+// ข้อความ "ผลที่คาดว่าจะได้" ก่อนยืนยัน — ใช้กติกาเดียวกับ scoring.js (ยังไม่รวม block ของทีมอื่นที่ยังไม่เฉลย)
+function previewText() {
+  const cap = scored.rules.dailyCap, r2 = (n) => Math.round(n * 100) / 100;
+  const t = teams.find((x) => x.id === teamId);
+  if (pickedCard === "carry") {
+    const from = $("cf-from")?.value, to = $("cf-to")?.value;
+    if (!from || !to || from === to) return "";
+    const g = rawToday(from), give = Math.min(Math.max(g - cap, 0), cap);
+    const rcv = rawToday(to), after = Math.min(rcv + give, cap), gain = after - Math.min(rcv, cap);
+    if (give <= 0) return `⚠️ ตอนนี้ ${from} มี ${r2(g)} ยังไม่เกิน ${cap} — <b>ยังโอนไม่ได้</b> ถ้า ${from} กรอกผลเพิ่มวันนี้จนเกิน ${cap} จะโอนให้อัตโนมัติ`;
+    if (gain <= 0) return `⚠️ ${to} วันนี้เต็ม ${cap} แล้ว — <b>รับเพิ่มไม่ได้</b> การ์ดจะเสียเปล่า`;
+    return `✅ ตอนนี้ ${from} มี ${r2(g)} โอนได้ ${r2(give)} → ${to} ${r2(Math.min(rcv, cap))} → ${r2(after)} · ทีม ${t.id} <b>+${r2(gain)}</b>`;
+  }
+  if (pickedCard === "x2") {
+    const rows = t.members.map((m) => { const r = Math.min(rawToday(m), cap); return `${m} ${r2(r)}→${r2(Math.min(r * 2, cap * 2))}`; });
+    return `🎲 สุ่มจาก ${t.members.length} คน (คะแนนวันนี้ → ถ้าได้ x2): ${rows.join(" · ")}<br><small>สุ่มได้คนที่ยังไม่ส่งผล = ยังมีโอกาส ถ้าเขากรอกผลวันนี้จะ ×2 ให้เอง</small>`;
+  }
+  if (pickedCard === "block") {
+    const team = $("cf-team")?.value, who = $("cf-target")?.value;
+    if (!team || !who) return "";
+    const r = Math.min(rawToday(who), cap);
+    return `🛡️ ${who} (ทีม ${team}) วันนี้มี ${r2(r)} → จะกลายเป็น <b>0</b> พรุ่งนี้ · ทีม ${team} <b>−${r2(r)}</b> <small>(ถ้าเขากรอกเพิ่มวันนี้ก็โดนหักด้วย)</small>`;
+  }
+  return "";
+}
+function renderPreview() { const el = $("cf-preview"); if (!el) return; const t = previewText(); el.innerHTML = t; el.hidden = !t; }
 
 async function useCard() {
   showError("", "card-error");
@@ -219,7 +254,8 @@ async function useCard() {
     if (!payload.target_team || !payload.target_runner) return showError("เลือกทีมและคนที่จะ block", "card-error");
     summary = `🛡️ block ${payload.target_runner} (ทีม ${payload.target_team})`;
   } else summary = "✖️2 ระบบจะสุ่มสมาชิกในทีมให้";
-  if (!confirm(`ใช้การ์ด ${CARDS[pickedCard].label} ของ ${t.name} วันนี้?\n${summary}\n\nใช้แล้วยกเลิกไม่ได้`)) return;
+  const pv = previewText().replace(/<[^>]+>/g, "");
+  if (!confirm(`ใช้การ์ด ${CARDS[pickedCard].label} ของ ${t.name} วันนี้?\n${summary}\n\n${pv}\n\nใช้แล้วยกเลิกไม่ได้`)) return;
 
   const btn = $("cf-submit");
   btn.disabled = true; btn.textContent = "กำลังใช้การ์ด…";

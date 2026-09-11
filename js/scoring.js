@@ -13,7 +13,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtwqecck";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtwqtung";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -214,11 +214,18 @@ export function computeScores(data, today = todayIso()) {
       c.detail = d.blockedBy ? "โดน block ไม่มีผล" : d.raw + (d.carriedIn || 0) > 0 ? `${c.runner} ${r2(without)} → ${r2(d.pts)}` : `${c.runner} ไม่ได้ส่งผล`;
     } else if (c.revealed) {
       const d = dayOf(c.target, c.date);
-      // ถ้าไม่โดน block จะได้เท่าไร (รวม x2/carry ที่มี)
-      const base = d.raw + (d.carriedIn || 0);
-      const would = d.x2 ? Math.min(base * 2, cap * 2) : Math.min(base, cap);
-      c.effect = -would; // ลบจากทีมเป้าหมาย
-      c.detail = would > 0 ? `${c.target} ${r2(would)} → 0` : `${c.target} ไม่ได้ส่งผลอยู่แล้ว`;
+      const first = d.blockedBy[0]; // ทีมแรกที่ block คนนี้ในวันนั้น (ตามลำดับแถว)
+      if (first !== c.team) {
+        c.effect = 0;
+        c.stacked = first;
+        c.detail = `ซ้อนกับทีม ${first.id} — ไม่มีผลเพิ่ม`;
+      } else {
+        // ถ้าไม่โดน block จะได้เท่าไร (รวม x2/carry ที่มี)
+        const base = d.raw + (d.carriedIn || 0);
+        const would = d.x2 ? Math.min(base * 2, cap * 2) : Math.min(base, cap);
+        c.effect = -would; // ลบจากทีมเป้าหมาย ครั้งเดียวต่อคนต่อวัน
+        c.detail = would > 0 ? `${c.target} ${r2(would)} → 0` : `${c.target} ไม่ได้ส่งผลอยู่แล้ว`;
+      }
     } else {
       c.effect = null;
       c.detail = "เฉลยพรุ่งนี้";

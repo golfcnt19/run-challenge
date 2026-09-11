@@ -467,3 +467,8 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .log.hl .eff.up { color: #15803d; }
 .log.hl .eff.down { color: var(--danger); }
 .log.hl .eff.dim { color: var(--muted); font-weight: 400; }
+.cf-preview { font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px dashed var(--accent); }
+.cf-preview small { color: var(--muted); }
+.reveal { background: var(--surface); border-left: 4px solid var(--danger); border-radius: var(--radius); padding: 10px 14px; margin: 12px 0; font-size: 0.88rem; box-shadow: var(--shadow); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.reveal .rv-item { display: inline-flex; align-items: center; gap: 4px; }
+.reveal .eff.down { color: var(--danger); font-weight: 600; }
