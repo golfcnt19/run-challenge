@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><title>icon gen</title></head>
+<body style="background:#333;padding:20px">
+<script>
+// วาดไอคอนแอป: พื้นไล่สีเหมือน hero + pictogram นักวิ่ง (สไตล์สัญลักษณ์กีฬา)
+// ใช้ครั้งเดียวตอนสร้างไฟล์ใน icons/  — เปิดผ่าน static server แล้วเรียก window.icons()
+function runner(g, s, cx, cy, scale) {
+  // พิกัดหน่วย 0..1 หันขวา ตัวเอนไปข้างหน้า
+  const P = (x, y) => [cx + (x - 0.5) * s * scale, cy + (y - 0.5) * s * scale];
+  const w = s * scale * 0.095;
+  g.strokeStyle = "#fff"; g.fillStyle = "#fff";
+  g.lineWidth = w; g.lineCap = "round"; g.lineJoin = "round";
+  const line = (...pts) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo : g.moveTo).call(g, ...P(...p))); g.stroke(); };
+  // หัว
+  const [hx, hy] = P(0.70, 0.17); g.beginPath(); g.arc(hx, hy, s * scale * 0.09, 0, Math.PI * 2); g.fill();
+  // ลำตัว (คอ → สะโพก) เอนไปหน้า
+  line([0.64, 0.30], [0.50, 0.55]);
+  // แขนหน้า: ไหล่ → ศอกไปหน้า → มือยกขึ้น
+  line([0.63, 0.33], [0.79, 0.43], [0.89, 0.34]);
+  // แขนหลัง: ไหล่ → ศอกไปหลัง → มือ
+  line([0.63, 0.33], [0.49, 0.41], [0.39, 0.31]);
+  // ขาหน้า: สะโพก → เข่ายกไปหน้า → เท้าลง
+  line([0.50, 0.55], [0.70, 0.62], [0.74, 0.84]);
+  // ขาหลัง: สะโพก → เข่าไปหลัง → ส้นเท้าเตะขึ้น
+  line([0.50, 0.55], [0.36, 0.72], [0.20, 0.64]);
+}
+function draw(size, maskable) {
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const g = c.getContext("2d");
+  const r = maskable ? 0 : size * 0.22;
+  const grad = g.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, "#4f46e5"); grad.addColorStop(0.6, "#7c3aed"); grad.addColorStop(1, "#d0367a");
+  g.fillStyle = grad;
+  g.beginPath(); g.roundRect(0, 0, size, size, r); g.fill();
+  runner(g, size, size * 0.5, size * 0.52, maskable ? 0.72 : 0.9);
+  c.style.margin = "6px"; document.body.appendChild(c);
+  return c.toDataURL("image/png").split(",")[1];
+}
+window.icons = () => ({
+  "apple-touch-icon.png": draw(180, false),
+  "icon-192.png": draw(192, false),
+  "icon-512.png": draw(512, false),
+  "icon-maskable-512.png": draw(512, true),
+});
+</script></body></html>
