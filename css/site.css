@@ -453,3 +453,17 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .week-cards td.has-card { line-height: 1.15; }
 .week-cards .wc-ic { display: block; font-size: 1rem; }
 .week-cards td.has-card small { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+
+/* ── card history ─────────────────────────────────── */
+.card-summary th, .card-summary td { text-align: center; }
+.card-summary th:first-child, .card-summary td:first-child { text-align: left; }
+.card-summary td.up { color: #15803d; }
+.card-summary td.down { color: var(--danger); }
+.hl-week { font-size: 0.78rem; color: var(--muted); font-weight: 600; margin: 14px 0 4px; }
+.log.hl li { align-items: center; gap: 8px; }
+.log.hl .hl-what { flex: 1; min-width: 0; }
+.log.hl .hl-detail { display: block; color: var(--muted); font-size: 0.72rem; }
+.log.hl .eff { white-space: nowrap; font-weight: 600; font-size: 0.82rem; }
+.log.hl .eff.up { color: #15803d; }
+.log.hl .eff.down { color: var(--danger); }
+.log.hl .eff.dim { color: var(--muted); font-weight: 400; }

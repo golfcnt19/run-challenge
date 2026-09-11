@@ -1,6 +1,7 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
 import { loadAll } from "./sheets.js";
 import { computeScores, CARDS, CARD_TYPES, weekKey } from "./scoring.js";
+import { fmtDateLong } from "./format.js";
 import { fmtDateShort, fmtPts, todayIso } from "./format.js";
 import { ENTRY_URL } from "./config.js";
 
@@ -18,12 +19,14 @@ let cardState = {};
 let rawData = null;
 let pickedCard = null;
 let teamId = store.get(LS.team) || "";
+let scored = null; // ผล computeScores ล่าสุด (ใช้วาดประวัติ)
+let histScope = "week", histTeam = "all";
 
 async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
   try {
     const data = await loadAll();
-    const scored = computeScores(data);
+    scored = computeScores(data);
     teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
     rawData = data;
     cardState = scored.cardState;
@@ -32,11 +35,64 @@ async function init() {
     renderRules(scored.rules);
     renderChips();
     renderCards();
+    renderHistory();
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`, "card-error");
     $("card-error").hidden = false;
   }
 }
+
+// ── ประวัติการ์ด + สรุปผลต่อทีม ──────────────────────────────────────
+const signed = (n) => (n > 0 ? "+" : "") + fmtPts(n);
+function cardLine(c) {
+  const who = c.card === "carry" ? `${c.runner} → ${c.target}`
+    : c.card === "x2" ? c.runner
+    : c.revealed ? `${c.target} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
+  let eff;
+  if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
+  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  return `<li>
+    <span class="d">${fmtDateShort(c.date)}</span>
+    <span class="dot-badge mini" style="--team:${esc(c.team.color)}">${esc(c.team.id)}</span>
+    <span class="hl-what">${CARDS[c.card].icon} ${esc(who)}<small class="hl-detail">${esc(c.detail)}</small></span>
+    ${eff}
+  </li>`;
+}
+
+function renderHistory() {
+  if (!scored) return;
+  document.querySelectorAll("#hist-scope button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === histScope));
+  document.querySelectorAll("#hist-team button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === histTeam));
+  const thisWeek = weekKey(todayIso());
+  let list = scored.cards.filter((c) => histScope === "all" || c.week === thisWeek);
+  if (histTeam === "mine" && teamId) list = list.filter((c) => c.team.id === teamId || (c.card === "block" && c.revealed && c.targetTeam.id === teamId));
+  list = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+  // สรุปต่อทีม: ได้จากการ์ด / โดน block / สุทธิ (ในขอบเขตที่เลือก)
+  const sum = {};
+  for (const t of teams) sum[t.id] = { gain: 0, loss: 0, used: 0 };
+  for (const c of list) {
+    sum[c.team.id].used++;
+    if (c.effect === null) continue;
+    if (c.card === "block") sum[c.targetTeam.id].loss += c.effect;
+    else sum[c.team.id].gain += c.effect;
+  }
+  const rows = [...teams].sort((x, y) => x.id.localeCompare(y.id)).map((t) => {
+    const s = sum[t.id], net = s.gain + s.loss;
+    return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td><td>${s.used}</td><td class="up">${s.gain ? signed(s.gain) : "–"}</td><td class="down">${s.loss ? signed(s.loss) : "–"}</td><td><b>${net ? signed(net) : "–"}</b></td></tr>`;
+  }).join("");
+  $("card-summary").innerHTML = `<thead><tr><th>ทีม</th><th>ใช้</th><th>ได้จากการ์ด</th><th>โดน block</th><th>สุทธิ</th></tr></thead><tbody>${rows}</tbody>`;
+
+  // รายการ จัดกลุ่มตามวีค
+  if (!list.length) return ($("card-history").innerHTML = `<p class="empty">ยังไม่มีการใช้การ์ด${histScope === "week" ? "ในวีคนี้" : ""}</p>`);
+  const groups = new Map();
+  for (const c of list) (groups.get(c.week) || groups.set(c.week, []).get(c.week)).push(c);
+  $("card-history").innerHTML = [...groups.entries()].map(([wk, cs]) => `
+    <div class="hl-week">วีค ${fmtDateShort(wk)} – ${fmtDateShort(addDaysIso(wk, 6))}${wk === thisWeek ? " <small>(วีคนี้)</small>" : ""}</div>
+    <ul class="log hl">${cs.map(cardLine).join("")}</ul>`).join("");
+}
+function addDaysIso(iso, n) { const p = iso.split("-").map(Number); const d = new Date(p[0], p[1] - 1, p[2] + n); const z = (x) => String(x).padStart(2, "0"); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; }
 
 function renderRules(r) {
   $("cards-lead").innerHTML = `ทีมละ <b>3 ใบ/วีค</b> (จันทร์–อาทิตย์) ชนิดละใบ · <b>วันละ 1 ใบ</b> · ใช้กับวันที่กดเท่านั้น · ใช้แล้วยกเลิกไม่ได้`;
@@ -179,9 +235,11 @@ async function useCard() {
     const c = out.card;
     // อัปเดตสถานะการ์ดในเครื่อง แล้ววาดปุ่มใหม่
     rawData.cards = [...(rawData.cards || []), { date: c.date, team_id: teamId, card: c.card, runner: c.runner || "", target_team: c.target_team || "", target_runner: c.target_runner || "" }];
-    cardState = computeScores(rawData).cardState;
+    scored = computeScores(rawData);
+    cardState = scored.cardState;
     pickedCard = null;
-    renderCards(); // ซ่อนฟอร์มย่อย + วาดปุ่มตามโควตาใหม่
+    renderCards();
+    renderHistory(); // ซ่อนฟอร์มย่อย + วาดปุ่มตามโควตาใหม่
     done.classList.remove("is-rolling");
     done.innerHTML = c.card === "x2"
       ? `🎲 สุ่มได้<span class="big">✖️2 ${esc(c.runner)}</span>คะแนนวันนี้ของ ${esc(c.runner)} ×2`
@@ -204,7 +262,10 @@ $("team-chips").addEventListener("click", (e) => {
   pickedCard = null;
   renderChips();
   renderCards();
+  renderHistory();
 });
+$("hist-scope").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; histScope = b.dataset.v; renderHistory(); });
+$("hist-team").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; histTeam = b.dataset.v; renderHistory(); });
 $("card-grid").addEventListener("click", (e) => {
   const b = e.target.closest("[data-card]");
   if (!b || b.disabled) return;

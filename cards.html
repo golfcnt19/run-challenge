@@ -61,6 +61,22 @@
 </main>
 
 <section class="wrap">
+  <div class="card" id="history-card">
+    <div class="track-head">
+      <h2>📜 ประวัติการ์ด</h2>
+      <div class="seg seg-mini" id="hist-scope" role="radiogroup">
+        <button type="button" data-v="week" class="is-active">วีคนี้</button>
+        <button type="button" data-v="all">ทั้งหมด</button>
+      </div>
+    </div>
+    <div class="seg seg-mini" id="hist-team" role="radiogroup" style="margin:6px 0 10px">
+      <button type="button" data-v="all" class="is-active">ทุกทีม</button>
+      <button type="button" data-v="mine">เฉพาะทีมที่เลือก</button>
+    </div>
+    <div class="table-scroll"><table class="table card-summary" id="card-summary"></table></div>
+    <div id="card-history"></div>
+  </div>
+
   <details class="card rules-card" open>
     <summary><h2>📖 วิธีใช้การ์ด</h2></summary>
     <ol class="howto">

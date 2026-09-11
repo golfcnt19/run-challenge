@@ -198,6 +198,32 @@ export function computeScores(data, today = todayIso()) {
     else if (d.x2) d.pts = Math.min(base * 2, rules.dailyCap * 2);
     else d.pts = Math.min(base, rules.dailyCap);
   }
+  // ผลของการ์ดแต่ละใบเป็นคะแนน (c.effect = คะแนนที่ทีมได้เพิ่ม/เสีย, c.detail = ข้อความ) — block ที่ยังไม่เฉลย = null
+  const cap = rules.dailyCap;
+  const r2 = (n) => Math.round(n * 100) / 100;
+  for (const c of cards) {
+    if (c.card === "carry") {
+      const t = dayOf(c.target, c.date);
+      const withoutIn = t.blockedBy ? 0 : Math.min(t.raw, cap);
+      c.effect = t.pts - withoutIn; // ที่ผู้รับได้เพิ่มจริง (0 ถ้าผู้รับเต็มอยู่แล้ว/โดน block)
+      c.detail = c.amount > 0 ? `${c.target} ${r2(withoutIn)} → ${r2(t.pts)}` : "ผู้ให้ไม่มีส่วนเกิน";
+    } else if (c.card === "x2") {
+      const d = dayOf(c.runner, c.date);
+      const without = d.blockedBy ? 0 : Math.min(d.raw + (d.carriedIn || 0), cap);
+      c.effect = d.pts - without;
+      c.detail = d.blockedBy ? "โดน block ไม่มีผล" : d.raw + (d.carriedIn || 0) > 0 ? `${c.runner} ${r2(without)} → ${r2(d.pts)}` : `${c.runner} ไม่ได้ส่งผล`;
+    } else if (c.revealed) {
+      const d = dayOf(c.target, c.date);
+      // ถ้าไม่โดน block จะได้เท่าไร (รวม x2/carry ที่มี)
+      const base = d.raw + (d.carriedIn || 0);
+      const would = d.x2 ? Math.min(base * 2, cap * 2) : Math.min(base, cap);
+      c.effect = -would; // ลบจากทีมเป้าหมาย
+      c.detail = would > 0 ? `${c.target} ${r2(would)} → 0` : `${c.target} ไม่ได้ส่งผลอยู่แล้ว`;
+    } else {
+      c.effect = null;
+      c.detail = "เฉลยพรุ่งนี้";
+    }
+  }
 
   // --- สรุปต่อคน ---
   const runners = new Map();
