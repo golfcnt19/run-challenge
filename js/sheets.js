@@ -63,12 +63,13 @@ async function fetchTab(tab) {
 }
 
 export async function loadAll() {
-  const [teams, runs, config] = await Promise.all([
+  const [teams, runs, config, cards] = await Promise.all([
     fetchTab(TABS.teams),
     fetchTab(TABS.runs),
     fetchTab(TABS.config),
+    fetchTab(TABS.cards).catch(() => []), // แท็บการ์ดยังไม่มีก็ใช้งานได้
   ]);
   const cfg = {};
   for (const r of config) if (r.key) cfg[r.key] = r.value;
-  return { teams, runs, config: cfg, loadedAt: new Date() };
+  return { teams, runs, config: cfg, cards, loadedAt: new Date() };
 }

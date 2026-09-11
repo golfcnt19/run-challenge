@@ -385,3 +385,36 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .day-hint.is-full { color: var(--accent); font-weight: 600; }
 .runner-log .a { display: flex; flex-direction: column; align-items: flex-end; }
 .runner-log .capped { color: var(--danger); font-size: 0.7rem; white-space: nowrap; }
+
+/* ── special cards ────────────────────────────────── */
+.tag.cards { letter-spacing: 1px; }
+.tag.cards .used { opacity: 0.25; text-decoration: line-through; }
+.card-ic { font-size: 0.8em; margin-right: 2px; }
+.day-cards { margin-top: 10px; font-size: 0.82rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.day-cards .dc { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.day-cards .dc.dim { color: var(--muted); }
+.cardnote { display: block; color: var(--accent); font-size: 0.7rem; white-space: nowrap; }
+
+/* ── special cards (entry page) ───────────────────── */
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.card-btn {
+  border: 2px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 12px;
+  padding: 12px 6px; display: grid; gap: 4px; justify-items: center; text-align: center; font-size: 0.82rem; font-weight: 600;
+}
+.card-btn .ic { font-size: 1.6rem; line-height: 1; }
+.card-btn small { font-weight: 400; color: var(--muted); font-size: 0.7rem; }
+.card-btn.is-active { border-color: var(--accent); background: var(--surface); }
+.card-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.card-btn.is-used { opacity: 0.45; text-decoration: none; }
+.card-btn.is-used .ic { filter: grayscale(1); }
+.card-form { margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 12px; display: grid; gap: 10px; }
+[hidden] { display: none !important; } /* ให้ hidden ชนะ display ของ class เสมอ */
+.card-form .field select { background: var(--surface); }
+.card-form .desc { font-size: 0.85rem; color: var(--muted); margin: 0; }
+.card-form .btn-primary { margin-top: 2px; }
+.card-done { margin-top: 12px; padding: 14px; border-radius: 12px; background: var(--surface-2); text-align: center; font-weight: 600; }
+.card-done .big { font-size: 1.6rem; display: block; margin: 4px 0; }
+@keyframes shuffle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.card-done.is-rolling .big { animation: shuffle 0.25s ease-in-out infinite; }
+.rules-sub { margin-top: 8px !important; }
+.rules-in { padding-left: 18px; }

@@ -9,6 +9,8 @@
 //        ผู้ที่มีสิทธิ์เข้าถึง: ทุกคน (Anyone)
 //      → กด Deploy → อนุญาตสิทธิ์ → ก๊อป "URL ของเว็บแอป" (ลงท้าย /exec) ไปวางใน js/config.js ที่ ENTRY_URL
 //   ถ้าแก้โค้ดภายหลัง ต้อง Deploy → จัดการการทำให้ใช้งานได้ → แก้ไข → เวอร์ชันใหม่ ไม่งั้น URL เดิมจะยังรันโค้ดเก่า
+//
+// การ์ดพิเศษ: ต้องมีแท็บ "cards" ในชีต (สร้างแท็บเปล่าชื่อ cards สคริปต์จะใส่หัวคอลัมน์ให้เอง)
 
 // ── PIN ของแต่ละทีม (แก้ได้เลย) ─────────────────────────────────────
 // หัวหน้าทีมใช้ PIN ของทีมตัวเองกรอกได้เฉพาะสมาชิกในทีม   ADMIN กรอกให้ทีมไหนก็ได้
@@ -26,6 +28,8 @@ const PINS = {
 const SHEET_RUNS = "runs";
 const SHEET_TEAMS = "teams";
 const SHEET_CONFIG = "config";
+const SHEET_CARDS = "cards";
+const CARD_TYPES = ["carry", "x2", "block"];
 
 // ── HTTP ─────────────────────────────────────────────────────────────
 function doGet() {
@@ -42,7 +46,9 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    return json_(body.action === "delete" ? deleteEntry_(body) : addEntry_(body));
+    if (body.action === "delete") return json_(deleteEntry_(body));
+    if (body.action === "card") return json_(useCard_(body));
+    return json_(addEntry_(body));
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
   } finally {
@@ -131,6 +137,90 @@ function addEntry_(b) {
   sh.getRange(row, 1).setNumberFormat("@");
 
   return { ok: true, row: row, entry: { date: date, runner: member, activity: activity, amount: amount, note: note } };
+}
+
+
+// ── การ์ดพิเศษ ───────────────────────────────────────────────────────
+// ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ · วันละ 1 ใบ · ใช้กับวันนี้ (เวลาไทย) เท่านั้น
+//   carry: runner = ผู้ให้, target_runner = ผู้รับ (ทีมเดียวกัน)
+//   x2:    สคริปต์สุ่มสมาชิกในทีมเอง (client ไม่ส่งชื่อ)
+//   block: target_team + target_runner (ทีมอื่น)
+function useCard_(b) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const teams = readTeams_(ss);
+  const config = readConfig_(ss);
+
+  const teamId = String(b.team_id || "").trim().toUpperCase();
+  const pin = String(b.pin || "").trim();
+  const team = teams[teamId];
+  if (!team) return { ok: false, error: "ไม่พบทีม " + teamId };
+  const isAdmin = PINS.ADMIN && pin === PINS.ADMIN;
+  if (!isAdmin && pin !== PINS[teamId]) return { ok: false, error: "PIN ไม่ถูกต้อง", code: "PIN" };
+
+  const card = String(b.card || "").trim().toLowerCase();
+  if (CARD_TYPES.indexOf(card) < 0) return { ok: false, error: "ไม่รู้จักการ์ด " + card };
+
+  const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+  if (config.start_date && today < config.start_date) return { ok: false, error: "ยังไม่ถึงวันเริ่มกิจกรรม" };
+  if (config.end_date && today > config.end_date) return { ok: false, error: "กิจกรรมจบแล้ว" };
+
+  const sh = ss.getSheetByName(SHEET_CARDS);
+  if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_CARDS + " (แอดมินต้องสร้างก่อน)" };
+  ensureCardHeaders_(sh);
+
+  // โควตา: วันนี้ยังไม่ใช้ และวีคนี้ยังไม่ใช้ชนิดนี้
+  const week = weekKey_(today);
+  const last = sh.getLastRow();
+  const rows = last >= 2 ? sh.getRange(2, 1, last - 1, 3).getValues() : [];
+  for (const r of rows) {
+    const d = r[0] instanceof Date ? Utilities.formatDate(r[0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(r[0]);
+    if (!d || String(r[1]).trim().toUpperCase() !== teamId) continue;
+    if (d === today) return { ok: false, error: "วันนี้ทีม " + teamId + " ใช้การ์ดไปแล้ว 1 ใบ (วันละใบ)" };
+    if (weekKey_(d) === week && String(r[2]).trim().toLowerCase() === card) return { ok: false, error: "วีคนี้ใช้การ์ด " + card + " ไปแล้ว (" + d + ")" };
+  }
+
+  let runner = "", targetTeam = "", targetRunner = "";
+  if (card === "carry") {
+    runner = findMember_(team, b.runner);
+    targetRunner = findMember_(team, b.target_runner);
+    if (!runner || !targetRunner) return { ok: false, error: "เดอะแบก: ต้องเลือกผู้ให้และผู้รับที่อยู่ในทีม " + teamId };
+    if (runner === targetRunner) return { ok: false, error: "เดอะแบก: ผู้ให้กับผู้รับต้องคนละคน" };
+  } else if (card === "x2") {
+    runner = team.members[Math.floor(Math.random() * team.members.length)];
+  } else {
+    targetTeam = String(b.target_team || "").trim().toUpperCase();
+    const tt = teams[targetTeam];
+    if (!tt) return { ok: false, error: "block: ไม่พบทีม " + targetTeam };
+    if (targetTeam === teamId) return { ok: false, error: "block ทีมตัวเองไม่ได้" };
+    targetRunner = findMember_(tt, b.target_runner);
+    if (!targetRunner) return { ok: false, error: "block: ไม่พบชื่อ " + b.target_runner + " ในทีม " + targetTeam };
+  }
+
+  const stamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+  sh.appendRow([today, teamId, card, runner, targetTeam, targetRunner, stamp + (isAdmin ? " (admin)" : "")]);
+  sh.getRange(sh.getLastRow(), 1).setNumberFormat("@");
+  return { ok: true, card: { date: today, team_id: teamId, card: card, runner: runner, target_team: targetTeam, target_runner: targetRunner } };
+}
+
+function findMember_(team, name) {
+  const n = String(name || "").trim().toLowerCase();
+  return team.members.find((m) => m.toLowerCase() === n) || "";
+}
+
+// วันจันทร์ของสัปดาห์ (วีคเริ่มจันทร์) — สูตรเดียวกับ js/scoring.js weekKey()
+function weekKey_(iso) {
+  const p = iso.split("-").map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  const dow = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dow);
+  const pad = (n) => (n < 10 ? "0" : "") + n;
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+
+function ensureCardHeaders_(sh) {
+  const want = ["date", "team_id", "card", "runner", "target_team", "target_runner", "submitted_at"];
+  const have = sh.getRange(1, 1, 1, want.length).getValues()[0];
+  want.forEach((h, i) => { if (!have[i]) sh.getRange(1, i + 1).setValue(h); });
 }
 
 function ensureHeaders_(sh) {

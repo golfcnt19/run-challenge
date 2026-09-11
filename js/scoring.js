@@ -6,8 +6,14 @@
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
 //   คะแนนทีม = ผลรวมคะแนนสมาชิก
+//
+// การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
+//   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
+//   x2    (✖️2)         ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 เกินเพดานได้ สูงสุด 2×เพดาน
+//   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
+//   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate } from "./format.js";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -28,6 +34,21 @@ export function normalizeActivity(s) {
   const v = (s || "").trim().toLowerCase();
   for (const [key, list] of Object.entries(ALIASES)) if (list.includes(v)) return key;
   return null;
+}
+
+export const CARDS = {
+  carry: { icon: "🎒", label: "เดอะแบก" },
+  x2:    { icon: "✖️2", label: "คูณสอง" },
+  block: { icon: "🛡️", label: "Block" },
+};
+export const CARD_TYPES = Object.keys(CARDS);
+
+// วันจันทร์ของสัปดาห์ที่วันนั้นอยู่ (วีคเริ่มจันทร์) — สูตรเดียวกับ Code.gs
+export function weekKey(iso) {
+  const d = parseDate(iso);
+  const dow = (d.getDay() + 6) % 7; // จันทร์ = 0
+  d.setDate(d.getDate() - dow);
+  return toIso(d);
 }
 
 export function readRules(config) {
@@ -121,20 +142,76 @@ export function computeScores(data, today = todayIso()) {
     d.raw += e.raw;
     d.byActivity[e.activity] = (d.byActivity[e.activity] || 0) + e.amount;
   }
-  for (const d of perRunnerDay.values()) d.pts = Math.min(d.raw, rules.dailyCap);
+  // --- การ์ดพิเศษ ---
+  const teamById = new Map(teams.map((t) => [t.id, t]));
+  const findMember = (team, name) => team.members.find((m) => m.toLowerCase() === String(name || "").trim().toLowerCase());
+  const cards = [];
+  (data.cards || []).forEach((r, i) => {
+    const line = i + 2;
+    if (!r.date && !r.team_id && !r.card) return;
+    const date = normalizeDate(r.date);
+    const team = teamById.get(String(r.team_id || "").trim().toUpperCase());
+    const card = String(r.card || "").trim().toLowerCase();
+    if (!date) return warnings.push(`cards แถว ${line}: อ่านวันที่ "${r.date}" ไม่ออก`);
+    if (!team) return warnings.push(`cards แถว ${line}: ไม่พบทีม "${r.team_id}"`);
+    if (!CARDS[card]) return warnings.push(`cards แถว ${line}: ไม่รู้จักการ์ด "${r.card}"`);
+    if (date < rules.startDate || date > rules.endDate) return warnings.push(`cards แถว ${line}: วันที่ ${date} อยู่นอกช่วง (ไม่นับ)`);
+    const c = { line, date, team, card, week: weekKey(date), revealed: true };
+    if (card === "carry") {
+      c.runner = findMember(team, r.runner);
+      c.target = findMember(team, r.target_runner);
+      if (!c.runner || !c.target) return warnings.push(`cards แถว ${line}: เดอะแบก ต้องมีผู้ให้และผู้รับในทีม ${team.id}`);
+      if (c.runner === c.target) return warnings.push(`cards แถว ${line}: เดอะแบก ผู้ให้กับผู้รับเป็นคนเดียวกัน`);
+    } else if (card === "x2") {
+      c.runner = findMember(team, r.runner);
+      if (!c.runner) return warnings.push(`cards แถว ${line}: x2 ไม่พบชื่อ "${r.runner}" ในทีม ${team.id}`);
+    } else {
+      c.targetTeam = teamById.get(String(r.target_team || "").trim().toUpperCase());
+      c.target = c.targetTeam && findMember(c.targetTeam, r.target_runner);
+      if (!c.targetTeam || !c.target) return warnings.push(`cards แถว ${line}: block ไม่พบ "${r.target_runner}" ในทีม "${r.target_team}"`);
+      if (c.targetTeam.id === team.id) return warnings.push(`cards แถว ${line}: block ทีมตัวเองไม่ได้`);
+      c.revealed = date < today; // เฉลยหลังจบวัน
+    }
+    cards.push(c);
+  });
+  const dayOf = (runner, date) => {
+    const k = `${runner}|${date}`;
+    let d = perRunnerDay.get(k);
+    if (!d) perRunnerDay.set(k, (d = { runner, team: runnerTeam.get(runner.toLowerCase()), date, raw: 0, pts: 0, byActivity: {} }));
+    return d;
+  };
+  // block (ที่เฉลยแล้ว) ชนะทุกอย่าง
+  for (const c of cards) if (c.card === "block" && c.revealed) { const d = dayOf(c.target, c.date); (d.blockedBy ||= []).push(c.team); }
+  // carry: โอนส่วนเกินเพดาน สูงสุด = เพดาน
+  for (const c of cards) if (c.card === "carry") {
+    const g = dayOf(c.runner, c.date), t = dayOf(c.target, c.date);
+    const give = Math.min(Math.max(g.raw - rules.dailyCap, 0), rules.dailyCap);
+    c.amount = give;
+    if (give > 0) { g.carriedOut = (g.carriedOut || 0) + give; t.carriedIn = (t.carriedIn || 0) + give; t.carriedFrom = c.runner; }
+  }
+  // x2
+  for (const c of cards) if (c.card === "x2") dayOf(c.runner, c.date).x2 = true;
+  // ตัดเพดาน (คำนวณสุทธิต่อคนต่อวัน)
+  for (const d of perRunnerDay.values()) {
+    const base = d.raw + (d.carriedIn || 0);
+    if (d.blockedBy) d.pts = 0;
+    else if (d.x2) d.pts = Math.min(base * 2, rules.dailyCap * 2);
+    else d.pts = Math.min(base, rules.dailyCap);
+  }
 
   // --- สรุปต่อคน ---
   const runners = new Map();
   for (const t of teams)
     for (const m of t.members)
-      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {} });
+      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, cardDays: {} });
   for (const d of perRunnerDay.values()) {
     const r = runners.get(d.runner);
     r.pts += d.pts;
-    r.daysActive++;
+    if (d.raw > 0) r.daysActive++;
     if (d.pts >= rules.dailyCap) r.fullDays++;
     r.days[d.date] = d.pts;
     r.raw[d.date] = d.raw;
+    if (d.blockedBy || d.x2 || d.carriedIn || d.carriedOut) r.cardDays[d.date] = { blockedBy: d.blockedBy, x2: d.x2, carriedIn: d.carriedIn, carriedFrom: d.carriedFrom, carriedOut: d.carriedOut };
     for (const [a, v] of Object.entries(d.byActivity)) r.byActivity[a] = (r.byActivity[a] || 0) + v;
   }
 
@@ -199,8 +276,24 @@ export function computeScores(data, today = todayIso()) {
   const lastStar = dayStats.length ? dayStats[dayStats.length - 1].stars[0] : null;
   if (lastStar) for (let i = dayStats.length - 1; i >= 0 && dayStats[i].stars.includes(lastStar); i--) starStreak++;
 
+  // การ์ดคงเหลือ + สถานะวันนี้ ต่อทีม (วีคปัจจุบัน)
+  const thisWeek = weekKey(today);
+  const cardState = {};
+  for (const t of teams) {
+    const mine = cards.filter((c) => c.team.id === t.id);
+    const used = {};
+    for (const c of mine) if (c.week === thisWeek) used[c.card] = c.date;
+    cardState[t.id] = { used, usedToday: mine.some((c) => c.date === today), left: CARD_TYPES.filter((k) => !used[k]) };
+  }
+  // ป้ายการ์ดต่อวัน (สำหรับตาราง/สรุป) — block ที่ยังไม่เฉลยไม่ส่งออก
+  const cardsByDate = {};
+  for (const c of cards) if (c.revealed) (cardsByDate[c.date] ||= []).push(c);
+
   const totalDays = daysInclusive(rules.startDate, rules.endDate);
   return {
+    cards,
+    cardsByDate,
+    cardState,
     dayStats,
     starStreak,
     rules,

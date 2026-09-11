@@ -1,6 +1,6 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
 import { loadAll } from "./sheets.js";
-import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints } from "./scoring.js";
 import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso } from "./format.js";
 import { USE_SAMPLE } from "./config.js";
 
@@ -78,6 +78,8 @@ function renderBoard(teams, rules) {
       if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
       if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
       else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
+      const cs = state.cardState[t.id];
+      if (cs) tags.push(`<span class="tag cards" title="การ์ดวีคนี้">🃏 ${CARD_TYPES.map((k) => `<span class="${cs.used[k] ? "used" : ""}">${CARDS[k].icon}</span>`).join("")}</span>`);
       return `
       <li class="team-card ${t.rank === 1 && t.pts > 0 ? "is-leader" : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
         <div class="rank r${t.rank}">${medal}</div>
@@ -190,10 +192,21 @@ function renderRules(r) {
     <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
     <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</li>
-    <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
+    <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>
+    <li class="rules-sub">🃏 <b>การ์ดพิเศษ</b> ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละใบ · วันละ 1 ใบ · ใช้กับวันที่กดเท่านั้น</li>
+    <li class="rules-in">🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน 5 ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด 5 (ผู้รับยังไม่เกิน 5)</li>
+    <li class="rules-in">✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด 10</li>
+    <li class="rules-in">🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง</li>`;
 }
 
 // ── รายวัน ─────────────────────────────────────────────────────────
+// ข้อความอธิบายการ์ด 1 ใบ เช่น "🎒 Jay → Bird +5"
+function cardTitle(c) {
+  if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : " (ไม่มีส่วนเกิน)"}`;
+  if (c.card === "x2") return `✖️2 ${c.runner}`;
+  return `🛡️ block ${c.target} (${c.targetTeam.id})`;
+}
+
 function renderDaySummary(teams, days) {
   const { dayStats, starStreak, runners } = state;
   const card = $("day-summary-card");
@@ -211,6 +224,13 @@ function renderDaySummary(teams, days) {
     <div class="stat"><b>${d.submitters}<span class="dim">/${runners.length}</span></b><small>คนส่งผล</small></div>
     <div class="stat" ${winner ? `style="--team:${esc(winner.color)}"` : ""}><b>${winner ? `<span class="dot-badge mini">${esc(winner.id)}</span> ${fmtPts(d.winnerPts)}` : "–"}</b><small>🏆 ทีมชนะวันนี้${d.winners.length > 1 ? " (เสมอ)" : ""}</small></div>
     <div class="stat"><b>${star ? esc(star.name) + (d.stars.length > 1 ? ` <span class="dim">+${d.stars.length - 1}</span>` : "") : "–"}</b><small>⭐ ดาวประจำวัน${star ? ` · ทำได้ ${fmtPts(d.starPts)}` : ""}${starStreak > 1 ? ` · 🔥 ${starStreak} วันติด` : ""}</small></div>`;
+  const todayCards = state.cardsByDate[d.date] || [];
+  const hidden = state.cards.filter((c) => c.date === d.date && !c.revealed).length;
+  $("day-cards").hidden = !(todayCards.length || hidden);
+  $("day-cards").innerHTML = "🃏 การ์ดวันนี้: " + [
+    ...todayCards.map((c) => `<span class="dc" style="--team:${esc(c.team.color)}"><span class="dot-badge mini">${esc(c.team.id)}</span> ${esc(cardTitle(c))}</span>`),
+    ...(hidden ? [`<span class="dc dim">🛡️ block ${hidden} ใบ (เฉลยพรุ่งนี้)</span>`] : []),
+  ].join("");
 }
 
 function renderDaily(teams, days) {
@@ -249,10 +269,14 @@ function renderDaily(teams, days) {
   const body = days
     .map((d, i) => {
       const ds = dayStats[i];
+      const dayCards = state.cardsByDate[d] || [];
       const cells = teams.map((t) => {
         const v = t.daily[i];
         const win = ds.winners.includes(t);
-        return `<td class="${v ? (win ? "win" : "") : "zero"}" ${win ? `style="color:${esc(t.color)}"` : ""}>${v ? (win ? "🏆 " : "") + fmtPts(v) : "–"}</td>`;
+        // การ์ดที่ "กระทบ" ทีมนี้ในวันนั้น: ทีมใช้เอง (carry/x2) หรือโดน block
+        const icons = dayCards.filter((c) => (c.card !== "block" && c.team.id === t.id) || (c.card === "block" && c.targetTeam.id === t.id))
+          .map((c) => `<span class="card-ic" title="${esc(cardTitle(c))}">${CARDS[c.card].icon}</span>`).join("");
+        return `<td class="${v ? (win ? "win" : "") : "zero"}" ${win ? `style="color:${esc(t.color)}"` : ""}>${icons}${v ? (win ? "🏆 " : "") + fmtPts(v) : "–"}</td>`;
       }).join("");
       const star = ds.stars.length ? `${esc(ds.stars[0].name)}${ds.stars.length > 1 ? ` +${ds.stars.length - 1}` : ""} <small style="color:${esc(ds.stars[0].team.color)}">● ${esc(ds.stars[0].team.id)}</small> <small>ทำได้ ${fmtPts(ds.starPts)}</small>` : "–";
       return `<tr><td>${fmtDateShort(d)}</td>${cells}<td>${fmtPts(ds.total)}</td><td class="star-cell">${star}</td></tr>`;
@@ -328,6 +352,20 @@ function renderTeam(t) {
 }
 
 // แตะชื่อสมาชิก → กางรายการผลของคนนั้น (วันที่ · กิจกรรม · จำนวน · คะแนนวันนั้น)
+// ป้ายผลของการ์ดต่อคนต่อวัน (ในรายการที่กางดู)
+function cardNote(r, date) {
+  const c = r.cardDays[date];
+  if (!c) return "";
+  const parts = [];
+  if (c.blockedBy) parts.push(`🛡️ โดน block (${c.blockedBy.map((t) => t.id).join(", ")}) → 0`);
+  else {
+    if (c.carriedIn) parts.push(`🎒 +${fmtPts(c.carriedIn)} จาก ${c.carriedFrom}`);
+    if (c.carriedOut) parts.push(`🎒 โอน ${fmtPts(c.carriedOut)} ให้เพื่อน`);
+    if (c.x2) parts.push(`✖️2 → ${fmtPts(r.days[date])}`);
+  }
+  return parts.map((p) => `<small class="cardnote">${p}</small>`).join("");
+}
+
 function toggleRunner(li) {
   const name = li.dataset.runner;
   const box = li.querySelector(".runner-log");
@@ -345,7 +383,7 @@ function toggleRunner(li) {
         <span class="d">${fmtDateShort(e.date)}</span>
         <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
         ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
-        <span class="a"><b>+${fmtPts(rawPoints(e.activity, e.amount, state.rules))}</b>${(r.raw[e.date] || 0) > state.rules.dailyCap ? `<small class="capped">วันนี้รวม ${fmtPts(r.raw[e.date])} → นับ ${fmtPts(state.rules.dailyCap)}</small>` : ""}</span>
+        <span class="a"><b>+${fmtPts(rawPoints(e.activity, e.amount, state.rules))}</b>${(r.raw[e.date] || 0) > state.rules.dailyCap ? `<small class="capped">วันนี้รวม ${fmtPts(r.raw[e.date])} → นับ ${fmtPts(state.rules.dailyCap)}</small>` : ""}${cardNote(r, e.date)}</span>
       </li>`).join("")}</ul>`
     : `<p class="empty">ยังไม่มีรายการ</p>`;
   box.hidden = false;

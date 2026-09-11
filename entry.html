@@ -82,6 +82,15 @@
     <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
   </form>
 
+  <div class="card" id="cards-card" hidden>
+    <div class="track-head"><h2>🃏 การ์ดพิเศษ <span id="cards-team"></span></h2><small id="cards-week"></small></div>
+    <p class="hint">วีคละ 3 ใบ (ชนิดละใบ) · วันละ 1 ใบ · ใช้กับวันนี้เท่านั้น · ใช้แล้วยกเลิกไม่ได้</p>
+    <div class="card-grid" id="card-grid"></div>
+    <div class="card-form" id="card-form" hidden></div>
+    <div class="alert" id="card-error" hidden></div>
+    <div class="card-done" id="card-done" hidden></div>
+  </div>
+
   <div class="card" id="recent-card" hidden>
     <h2>รายการล่าสุดของทีม <span id="recent-team"></span> <small class="dim">7 วันหลังสุด</small></h2>
     <p class="hint">กรอกผิด กด 🗑 เพื่อลบได้เลย (ต้องมี PIN ของทีม)</p>
