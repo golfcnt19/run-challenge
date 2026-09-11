@@ -47,25 +47,33 @@ function renderRules(r) {
   const cap = r.dailyCap, p = fmtPts;
   $("cards-examples").innerHTML = `
     <div class="ex"><div class="ex-h">🎒 เดอะแบก</div>
-      <div class="ex-row"><span>Jay วิ่ง 15 กม. · Bird วิ่ง 2 กม.</span><span>ปกติ: Jay ${p(cap)} + Bird 2 = <b>${p(cap + 2)}</b></span></div>
-      <div class="ex-row"><span>ใช้การ์ด Jay → Bird</span><span>Jay ${p(cap)} + Bird ${p(cap)} = <b>${p(cap * 2)}</b> <small>(ส่วนเกิน 10 โอนได้แค่ ${p(cap)} · Bird รับได้แค่ถึง ${p(cap)})</small></span></div>
-      <div class="ex-row"><span>Jay วิ่ง 7 กม. → Bird</span><span>โอนได้ 2 (ส่วนที่เกิน ${p(cap)}) · Jay ${p(cap)} + Bird 2+2 = 4</span></div>
-      <div class="ex-row"><span>Jay วิ่ง 4 กม. → Bird</span><span><b>โอนไม่ได้</b> ไม่มีส่วนเกิน — การ์ดเสียเปล่า</span></div>
+      <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
+        <tr><td>Jay วิ่ง 15 กม. · Bird วิ่ง 2 กม. <small>(ไม่ใช้การ์ด)</small></td><td>Jay ${p(cap)} + Bird 2 = <b>${p(cap + 2)}</b></td></tr>
+        <tr><td>ใช้การ์ด Jay → Bird</td><td>Jay ${p(cap)} + Bird ${p(cap)} = <b>${p(cap * 2)}</b><br><small>ส่วนเกิน 10 โอนได้แค่ ${p(cap)} · Bird รับได้ถึง ${p(cap)}</small></td></tr>
+        <tr><td>Jay วิ่ง 7 กม. → Bird วิ่ง 2 กม.</td><td>โอนได้ 2 (ส่วนที่เกิน ${p(cap)})<br>Jay ${p(cap)} + Bird 4 = <b>${p(cap + 4)}</b></td></tr>
+        <tr><td>Jay วิ่ง 4 กม. → Bird</td><td><b>โอนไม่ได้</b> ไม่มีส่วนเกิน — การ์ดเสียเปล่า</td></tr>
+      </tbody></table>
     </div>
     <div class="ex"><div class="ex-h">✖️2 คูณสอง</div>
-      <div class="ex-row"><span>กดการ์ด ระบบสุ่มได้ Koi · Koi วิ่ง 3 กม.</span><span>3 × 2 = <b>6</b> (เกิน ${p(cap)} ได้)</span></div>
-      <div class="ex-row"><span>สุ่มได้ Koi · Koi วิ่ง 5 กม. + เดิน 4,000 ก้าว</span><span>ดิบ 7 → เพดาน ${p(cap)} → ×2 = <b>${p(cap * 2)}</b> (สูงสุด)</span></div>
-      <div class="ex-row"><span>สุ่มได้ Koi · Koi ไม่ได้ส่งผลวันนั้น</span><span>0 × 2 = <b>0</b> — การ์ดเสียเปล่า</span></div>
+      <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
+        <tr><td>สุ่มได้ Koi · Koi วิ่ง 3 กม.</td><td>3 × 2 = <b>6</b> <small>(เกิน ${p(cap)} ได้)</small></td></tr>
+        <tr><td>สุ่มได้ Koi · Koi วิ่ง 5 กม. + เดิน 4,000 ก้าว</td><td>ดิบ 7 → เพดาน ${p(cap)} → ×2 = <b>${p(cap * 2)}</b> <small>(สูงสุด)</small></td></tr>
+        <tr><td>สุ่มได้ Koi · Koi ไม่ได้ส่งผลวันนั้น</td><td>0 × 2 = <b>0</b> — การ์ดเสียเปล่า</td></tr>
+      </tbody></table>
     </div>
     <div class="ex"><div class="ex-h">🛡️ Block</div>
-      <div class="ex-row"><span>ทีม A block Golf (ทีม G) · Golf วิ่ง 8 กม.</span><span>วันนี้เว็บยังโชว์ Golf ${p(cap)} · <b>พรุ่งนี้กลายเป็น 0</b> และขึ้นป้าย 🛡️</span></div>
-      <div class="ex-row"><span>Golf โดน block และทีม G ใช้ x2 สุ่มได้ Golf พอดี</span><span>block ชนะ → <b>0</b> (x2 เสียเปล่า)</span></div>
-      <div class="ex-row"><span>ทีม A และทีม B block Golf วันเดียวกัน</span><span>Golf = 0 · ทั้งสองทีมเสียใบ ไม่รู้กัน</span></div>
+      <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
+        <tr><td>ทีม A block Golf (ทีม G) · Golf วิ่ง 8 กม.</td><td>วันนี้ยังโชว์ Golf ${p(cap)}<br><b>พรุ่งนี้กลายเป็น 0</b> และขึ้นป้าย 🛡️</td></tr>
+        <tr><td>Golf โดน block และทีม G ใช้ x2 สุ่มได้ Golf พอดี</td><td>block ชนะ → <b>0</b> <small>(x2 เสียเปล่า)</small></td></tr>
+        <tr><td>ทีม A และทีม B block Golf วันเดียวกัน</td><td>Golf = <b>0</b> · ทั้งสองทีมเสียใบ ไม่รู้กัน</td></tr>
+      </tbody></table>
     </div>
     <div class="ex"><div class="ex-h">📅 โควตา</div>
-      <div class="ex-row"><span>จันทร์ใช้ 🎒 · อังคารใช้ ✖️2 · พุธใช้ 🛡️</span><span>ครบ 3 ใบ พฤหัส–อาทิตย์ไม่มีใบเหลือ</span></div>
-      <div class="ex-row"><span>จันทร์ใช้ 🎒 แล้วอยากใช้ ✖️2 วันเดียวกัน</span><span><b>ไม่ได้</b> วันละ 1 ใบ — รอวันอังคาร</span></div>
-      <div class="ex-row"><span>วีคนี้ใช้แค่ 1 ใบ</span><span>อีก 2 ใบ<b>ไม่ทบ</b>ไปวีคหน้า วีคใหม่ได้ 3 ใบใหม่</span></div>
+      <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
+        <tr><td>จันทร์ 🎒 · อังคาร ✖️2 · พุธ 🛡️</td><td>ครบ 3 ใบ พฤหัส–อาทิตย์ไม่มีใบเหลือ</td></tr>
+        <tr><td>จันทร์ใช้ 🎒 แล้วอยากใช้ ✖️2 วันเดียวกัน</td><td><b>ไม่ได้</b> วันละ 1 ใบ — รอวันอังคาร</td></tr>
+        <tr><td>วีคนี้ใช้แค่ 1 ใบ</td><td>อีก 2 ใบ<b>ไม่ทบ</b>ไปวีคหน้า · วีคใหม่ได้ 3 ใบใหม่</td></tr>
+      </tbody></table>
     </div>`;
 }
 

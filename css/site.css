@@ -429,11 +429,21 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .rules-card > .hint { margin: 0 14px 14px; }
 .examples { padding: 0 14px 14px; display: grid; gap: 12px; }
 .ex-h { font-weight: 600; margin-bottom: 4px; }
-.ex-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
-.ex-row:last-child { border-bottom: 0; }
-.ex-row > span:first-child { color: var(--muted); }
-.ex-row small { color: var(--muted); font-size: 0.75rem; }
-@media (max-width: 480px) { .ex-row { grid-template-columns: 1fr; gap: 2px; } .ex-row > span:last-child { padding-left: 10px; } }
+.ex-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ex-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.75rem; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); }
+.ex-table td { vertical-align: top; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line); }
+.ex-table td:first-child { width: 48%; color: var(--muted); }
+.ex-table td:last-child { color: var(--text); }
+.ex-table tr:last-child td { border-bottom: 0; }
+.ex-table small { color: var(--muted); font-size: 0.75rem; }
+@media (max-width: 480px) {
+  .ex-table thead { display: none; }
+  .ex-table tr { display: block; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .ex-table tr:last-child { border-bottom: 0; }
+  .ex-table td { display: block; width: auto !important; padding: 1px 0; border: 0; }
+  .ex-table td:last-child { padding-left: 12px; }
+  .ex-table td:last-child::before { content: "→ "; color: var(--muted); }
+}
 
 /* ── week cards table ─────────────────────────────── */
 .week-cards th, .week-cards td { text-align: center; padding: 6px 4px; }
