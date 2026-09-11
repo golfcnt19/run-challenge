@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx6ebas";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx6ebas";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx6ebas";
-import { USE_SAMPLE } from "./config.js?v=mtx6ebas";
+import { loadAll } from "./sheets.js?v=mtx6fz6u";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx6fz6u";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx6fz6u";
+import { USE_SAMPLE } from "./config.js?v=mtx6fz6u";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -472,7 +472,10 @@ function renderTeam(t) {
 
   const runners = t.runners
     .map((r, i) => {
-      const parts = Object.entries(r.byActivity).map(([a, v]) => `${act(a).icon} ${fmtNum(v, act(a).timed || a === "walk" ? 0 : 1)} ${act(a).unit}`);
+      // เรียงคงที่ วิ่งสวน → วิ่งลู่ → เดิน → ปั่น แล้วรวมกีฬาอื่น ๆ (นาที) เป็นก้อนเดียว
+      const parts = ["run", "treadmill", "walk", "bike"].filter((a) => r.byActivity[a]).map((a) => `${act(a).icon} ${fmtNum(r.byActivity[a], a === "walk" ? 0 : 1)} ${act(a).unit}`);
+      const other = Object.entries(r.byActivity).reduce((s, [a, v]) => s + (act(a).timed ? v : 0), 0);
+      if (other) parts.push(`🏸 ${fmtNum(other)} นาที`);
       const pct = maxPerRunner ? Math.min(100, (r.pts / maxPerRunner) * 100) : 0;
       return `
       <li class="runner is-clickable" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">

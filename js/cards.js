@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mtx6ebas";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtx6ebas";
-import { fmtDateLong } from "./format.js?v=mtx6ebas";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtx6ebas";
-import { ENTRY_URL } from "./config.js?v=mtx6ebas";
+import { loadAll } from "./sheets.js?v=mtx6fz6u";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mtx6fz6u";
+import { fmtDateLong } from "./format.js?v=mtx6fz6u";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mtx6fz6u";
+import { ENTRY_URL } from "./config.js?v=mtx6fz6u";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
