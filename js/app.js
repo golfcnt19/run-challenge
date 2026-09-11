@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx60r8i";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx60r8i";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx60r8i";
-import { USE_SAMPLE } from "./config.js?v=mtx60r8i";
+import { loadAll } from "./sheets.js?v=mtx65mxo";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx65mxo";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx65mxo";
+import { USE_SAMPLE } from "./config.js?v=mtx65mxo";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -500,7 +500,7 @@ function renderTeam(t) {
     <div class="card" style="--team:${esc(t.color)}">
       <div class="team-head">
         <div class="badge">${esc(t.id)}</div>
-        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · ${t.members.length} คน</small></div>
+        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน</small></div>
         <div class="pts"><b>${fmtPts(t.pts)}</b><small>คะแนน</small></div>
       </div>
       <div class="stat-row">
