@@ -47,7 +47,8 @@
 
 ## ดูแลระหว่างกิจกรรม
 
-เปลี่ยนสมาชิก / PIN / ลบเดโม / แก้ปัญหา → [docs/MAINTENANCE.md](docs/MAINTENANCE.md)
+- สถาปัตยกรรม + เงื่อนไขการคำนวณทั้งหมด → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- เปลี่ยนสมาชิก / PIN / ลบเดโม / แก้ปัญหา → [docs/MAINTENANCE.md](docs/MAINTENANCE.md)
 
 ## ปรับกติกา (แท็บ `config`)
 
