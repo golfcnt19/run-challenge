@@ -225,3 +225,15 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   .board { grid-template-columns: 1fr 1fr; }
   .team-card { grid-template-columns: auto auto 1fr auto; }
 }
+
+/* ── install card ─────────────────────────────────── */
+.install {
+  position: relative; background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: 12px 40px 12px 14px; margin: 14px 0; box-shadow: var(--shadow); font-size: 0.9rem;
+}
+.install p { margin: 4px 0 0; color: var(--muted); }
+.install .btn-install { margin-top: 10px; padding: 9px 18px; font-size: 0.9rem; width: auto; }
+.install-close {
+  position: absolute; top: 8px; right: 8px; border: 0; background: transparent; color: var(--muted); font-size: 1rem; padding: 4px 8px;
+}
+.ios-share { display: inline-block; border: 1.5px solid currentColor; border-radius: 4px; padding: 0 4px; font-size: 0.85em; line-height: 1.3; }
