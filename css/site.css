@@ -312,3 +312,15 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
   .sprint .p2 { display: none; }
 }
 @media (min-width: 640px) { .track { --label-w: 90px; } .lane { height: 44px; } .fig { width: 40px; height: 33px; } }
+
+/* ── daily: summary tiles + stage wins ────────────── */
+.day-summary { margin-top: 0; }
+.day-summary .stat b { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 1.6em; }
+.day-summary .stat small.up { color: #15803d; display: block; }
+.day-summary .stat small.down { color: var(--danger); display: block; }
+.day-summary .dim { color: var(--muted); font-weight: 400; font-size: 0.8em; }
+.dot-badge.mini { width: 20px; height: 20px; border-radius: 6px; font-size: 0.7rem; }
+.table td.win { font-weight: 700; }
+.table .star-cell { text-align: left; }
+.table .star-cell small { color: var(--muted); }
+@media (max-width: 480px) { .day-summary { grid-template-columns: 1fr 1fr; } }

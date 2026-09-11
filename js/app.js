@@ -176,7 +176,27 @@ function renderRules(r) {
 }
 
 // ── รายวัน ─────────────────────────────────────────────────────────
+function renderDaySummary(teams, days) {
+  const { dayStats, starStreak, runners } = state;
+  const card = $("day-summary-card");
+  card.hidden = !dayStats.length;
+  if (!dayStats.length) return;
+  const i = dayStats.length - 1;
+  const d = dayStats[i], prev = dayStats[i - 1];
+  $("day-summary-date").textContent = fmtDateLong(d.date);
+  const delta = prev ? d.total - prev.total : 0;
+  const deltaHtml = prev ? `<small class="${delta >= 0 ? "up" : "down"}">${delta >= 0 ? "▲" : "▼"} ${fmtPts(Math.abs(delta))} จากเมื่อวาน</small>` : "";
+  const winner = d.winners[0];
+  const star = d.stars[0];
+  $("day-summary").innerHTML = `
+    <div class="stat"><b>${fmtPts(d.total)}</b><small>คะแนนรวมวันนี้</small>${deltaHtml}</div>
+    <div class="stat"><b>${d.submitters}<span class="dim">/${runners.length}</span></b><small>คนส่งผล</small></div>
+    <div class="stat" ${winner ? `style="--team:${esc(winner.color)}"` : ""}><b>${winner ? `<span class="dot-badge mini">${esc(winner.id)}</span> ${fmtPts(d.winnerPts)}` : "–"}</b><small>🏆 ทีมชนะวันนี้${d.winners.length > 1 ? " (เสมอ)" : ""}</small></div>
+    <div class="stat"><b>${star ? esc(star.name) + (d.stars.length > 1 ? ` <span class="dim">+${d.stars.length - 1}</span>` : "") : "–"}</b><small>⭐ ดาวประจำวัน${star ? ` · ทำได้ ${fmtPts(d.starPts)}` : ""}${starStreak > 1 ? ` · 🔥 ${starStreak} วันติด` : ""}</small></div>`;
+}
+
 function renderDaily(teams, days) {
+  renderDaySummary(teams, days);
   const labels = days.map(fmtDateShort);
   const common = {
     responsive: true,
@@ -189,38 +209,42 @@ function renderDaily(teams, days) {
     },
   };
   if (!days.length) {
-    ["chart-cumulative", "chart-daily"].forEach((id) => charts[id]?.destroy());
+    charts["chart-daily"]?.destroy();
     $("daily-table").innerHTML = `<tr><td class="empty">ยังไม่ถึงวันเริ่มกิจกรรม</td></tr>`;
     return;
   }
-  drawChart("chart-cumulative", {
-    type: "line",
-    data: {
-      labels,
-      datasets: teams.map((t) => ({
-        label: t.name, data: t.cumulative, borderColor: t.color, backgroundColor: t.color,
-        tension: 0.3, pointRadius: days.length > 20 ? 0 : 3, borderWidth: 2,
-      })),
-    },
-    options: common,
-  });
+  // แท่งแยกทีม (ไม่ซ้อน) เฉพาะ 7 วันล่าสุด เรียงทีม A–G
+  const N = 7, from = Math.max(0, days.length - N);
+  const byId = [...teams].sort((x, y) => x.id.localeCompare(y.id));
   drawChart("chart-daily", {
     type: "bar",
-    data: { labels, datasets: teams.map((t) => ({ label: t.name, data: t.daily, backgroundColor: t.color })) },
-    options: { ...common, scales: { ...common.scales, x: { ...common.scales.x, stacked: true }, y: { ...common.scales.y, stacked: true } } },
+    data: {
+      labels: labels.slice(from),
+      datasets: byId.map((t) => ({ label: t.id, data: t.daily.slice(from), backgroundColor: alpha(t.color, 0.8), borderRadius: 3, categoryPercentage: 0.85, barPercentage: 0.9 })),
+    },
+    options: { ...common, plugins: { ...common.plugins, tooltip: { callbacks: { label: (c) => ` ${byId[c.datasetIndex].name}: ${fmtPts(c.raw)}` } } } },
   });
 
   // ตาราง: แถว = วัน, คอลัมน์ = ทีม (เรียงตามอันดับ)
-  const head = `<thead><tr><th>วันที่</th>${teams.map((t) => `<th><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</th>`).join("")}<th>รวม</th></tr></thead>`;
+  const { dayStats } = state;
+  const head = `<thead><tr><th>วันที่</th>${teams.map((t) => `<th><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</th>`).join("")}<th>รวม</th><th>⭐ ดาวประจำวัน</th></tr></thead>`;
   const body = days
     .map((d, i) => {
-      const cells = teams.map((t) => `<td class="${t.daily[i] ? "" : "zero"}">${t.daily[i] ? fmtPts(t.daily[i]) : "–"}</td>`).join("");
-      const sum = teams.reduce((s, t) => s + t.daily[i], 0);
-      return `<tr><td>${fmtDateShort(d)}</td>${cells}<td>${fmtPts(sum)}</td></tr>`;
+      const ds = dayStats[i];
+      const cells = teams.map((t) => {
+        const v = t.daily[i];
+        const win = ds.winners.includes(t);
+        return `<td class="${v ? (win ? "win" : "") : "zero"}" ${win ? `style="color:${esc(t.color)}"` : ""}>${v ? (win ? "🏆 " : "") + fmtPts(v) : "–"}</td>`;
+      }).join("");
+      const star = ds.stars.length ? `${esc(ds.stars[0].name)}${ds.stars.length > 1 ? ` +${ds.stars.length - 1}` : ""} <small style="color:${esc(ds.stars[0].team.color)}">● ${esc(ds.stars[0].team.id)}</small> <small>ทำได้ ${fmtPts(ds.starPts)}</small>` : "–";
+      return `<tr><td>${fmtDateShort(d)}</td>${cells}<td>${fmtPts(ds.total)}</td><td class="star-cell">${star}</td></tr>`;
     })
     .reverse()
     .join("");
-  const foot = `<tfoot><tr><td>รวม</td>${teams.map((t) => `<td>${fmtPts(t.pts)}</td>`).join("")}<td>${fmtPts(teams.reduce((s, t) => s + t.pts, 0))}</td></tr></tfoot>`;
+  const foot = `<tfoot>
+    <tr><td>🏆 ชนะ (วัน)</td>${teams.map((t) => `<td>${t.stageWins || "–"}</td>`).join("")}<td></td><td></td></tr>
+    <tr><td>รวม</td>${teams.map((t) => `<td>${fmtPts(t.pts)}</td>`).join("")}<td>${fmtPts(teams.reduce((s, t) => s + t.pts, 0))}</td><td></td></tr>
+  </tfoot>`;
   $("daily-table").innerHTML = head + `<tbody>${body}</tbody>` + foot;
 }
 
@@ -290,6 +314,12 @@ function drawChart(id, cfg) {
   charts[id] = new Chart($(id), cfg);
 }
 const dark = () => matchMedia("(prefers-color-scheme: dark)").matches;
+const surfaceColor = () => (dark() ? "#181b26" : "#ffffff");
+// "#rrggbb" → "rgba(r,g,b,a)"
+const alpha = (hex, a) => {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : hex;
+};
 const gridColor = () => (dark() ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)");
 const textColor = () => (dark() ? "#9a9fb3" : "#676b7e");
 

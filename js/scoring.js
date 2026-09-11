@@ -127,13 +127,14 @@ export function computeScores(data, today = todayIso()) {
   const runners = new Map();
   for (const t of teams)
     for (const m of t.members)
-      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {} });
+      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {} });
   for (const d of perRunnerDay.values()) {
     const r = runners.get(d.runner);
     r.pts += d.pts;
     r.daysActive++;
     if (d.pts >= rules.dailyCap) r.fullDays++;
     r.days[d.date] = d.pts;
+    r.raw[d.date] = d.raw;
     for (const [a, v] of Object.entries(d.byActivity)) r.byActivity[a] = (r.byActivity[a] || 0) + v;
   }
 
@@ -180,8 +181,28 @@ export function computeScores(data, today = todayIso()) {
     t.hot = hotPts > 0 && t.todayPts === hotPts;
   }
 
+  // --- สถิติรายวัน: ทีมชนะวัน (🏆), ดาวประจำวัน (⭐), ยอดรวม, คนส่งผล ---
+  const runnerList = [...runners.values()];
+  const dayStats = days.map((date, i) => {
+    const total = teamStats.reduce((s, t) => s + t.daily[i], 0);
+    const submitters = runnerList.filter((r) => r.days[date] > 0).length;
+    const top = Math.max(0, ...teamStats.map((t) => t.daily[i]));
+    const winners = top > 0 ? teamStats.filter((t) => t.daily[i] === top) : [];
+    // ดาวประจำวัน = คนที่ทำคะแนนดิบ (ก่อนตัดเพดาน) สูงสุดของวัน
+    const starPts = Math.max(0, ...runnerList.map((r) => r.raw[date] || 0));
+    const stars = starPts > 0 ? runnerList.filter((r) => (r.raw[date] || 0) === starPts) : [];
+    return { date, total, submitters, winners, winnerPts: top, stars, starPts };
+  });
+  for (const t of teamStats) t.stageWins = dayStats.filter((d) => d.winners.includes(t)).length;
+  // สตรีคดาวประจำวัน: คนที่เป็นดาววันล่าสุด เป็นมากี่วันติด
+  let starStreak = 0;
+  const lastStar = dayStats.length ? dayStats[dayStats.length - 1].stars[0] : null;
+  if (lastStar) for (let i = dayStats.length - 1; i >= 0 && dayStats[i].stars.includes(lastStar); i--) starStreak++;
+
   const totalDays = daysInclusive(rules.startDate, rules.endDate);
   return {
+    dayStats,
+    starStreak,
     rules,
     teams: teamStats,
     runners: [...runners.values()].sort((a, b) => b.pts - a.pts),

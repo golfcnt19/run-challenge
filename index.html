@@ -68,17 +68,17 @@
 
   <!-- รายวัน -->
   <section class="panel" id="panel-daily" role="tabpanel" hidden>
-    <div class="card chart-card">
-      <h2>คะแนนสะสมรายวัน</h2>
-      <div class="chart-box tall"><canvas id="chart-cumulative"></canvas></div>
-    </div>
-    <div class="card chart-card">
-      <h2>คะแนนที่ได้ในแต่ละวัน</h2>
-      <div class="chart-box"><canvas id="chart-daily"></canvas></div>
+    <div class="card" id="day-summary-card">
+      <div class="track-head"><h2 id="day-summary-title">สรุปวันล่าสุด</h2><small id="day-summary-date"></small></div>
+      <div class="stat-row day-summary" id="day-summary"></div>
     </div>
     <div class="card">
       <h2>ตารางรายวัน</h2>
       <div class="table-scroll"><table class="table" id="daily-table"></table></div>
+    </div>
+    <div class="card chart-card">
+      <div class="track-head"><h2>📊 คะแนนแต่ละวัน</h2><small>7 วันล่าสุด</small></div>
+      <div class="chart-box"><canvas id="chart-daily"></canvas></div>
     </div>
   </section>
 
