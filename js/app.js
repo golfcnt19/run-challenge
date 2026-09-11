@@ -1,14 +1,15 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtwr0y48";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwr0y48";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwr0y48";
-import { USE_SAMPLE } from "./config.js?v=mtwr0y48";
+import { loadAll } from "./sheets.js?v=mtwrflwc";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwrflwc";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwrflwc";
+import { USE_SAMPLE } from "./config.js?v=mtwrflwc";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let state = null; // ผลจาก computeScores
 let selectedTeam = null;
+let dailyShowAll = false; // ตารางรายวัน: false = 7 วันล่าสุด
 const charts = {};
 
 // ── โหลด ───────────────────────────────────────────────────────────
@@ -300,8 +301,10 @@ function renderDaily(teams, days) {
   // ตาราง: แถว = วัน, คอลัมน์ = ทีม (เรียงตามอันดับ)
   const { dayStats } = state;
   const head = `<thead><tr><th>วันที่</th>${teams.map((t) => `<th><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</th>`).join("")}<th>รวม</th><th>⭐ ดาวประจำวัน</th></tr></thead>`;
-  const body = days
-    .map((d, i) => {
+  const shown = dailyShowAll ? days.map((d, i) => i) : days.map((d, i) => i).slice(-7);
+  const body = shown
+    .map((i) => {
+      const d = days[i];
       const ds = dayStats[i];
       const dayCards = state.cardsByDate[d] || [];
       const cells = teams.map((t) => {
@@ -322,6 +325,9 @@ function renderDaily(teams, days) {
     <tr><td>รวม</td>${teams.map((t) => `<td>${fmtPts(t.pts)}</td>`).join("")}<td>${fmtPts(teams.reduce((s, t) => s + t.pts, 0))}</td><td></td></tr>
   </tfoot>`;
   $("daily-table").innerHTML = head + `<tbody>${body}</tbody>` + foot;
+  const btn = $("daily-toggle");
+  btn.hidden = days.length <= 7;
+  btn.textContent = dailyShowAll ? "แสดงแค่ 7 วันล่าสุด" : `ดูทั้งหมด (${days.length} วัน)`;
 }
 
 // ── รายทีม ─────────────────────────────────────────────────────────
@@ -463,6 +469,7 @@ function showTab(name) {
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 $("refresh").addEventListener("click", refresh);
+$("daily-toggle").addEventListener("click", () => { dailyShowAll = !dailyShowAll; renderDaily(state.teams, state.days); });
 $("track-mode").addEventListener("click", (e) => {
   const b = e.target.closest("[data-v]");
   if (!b) return;

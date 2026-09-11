@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mtwr0y48";
-import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js?v=mtwr0y48";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtwr0y48";
-import { ENTRY_URL } from "./config.js?v=mtwr0y48";
+import { loadAll } from "./sheets.js?v=mtwrflwc";
+import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js?v=mtwrflwc";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtwrflwc";
+import { ENTRY_URL } from "./config.js?v=mtwrflwc";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

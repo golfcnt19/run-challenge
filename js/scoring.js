@@ -13,7 +13,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtwr0y48";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtwrflwc";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
