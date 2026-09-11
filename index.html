@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run Challenge — ตารางคะแนน</title>
+<meta name="description" content="ตารางคะแนนกิจกรรมวิ่งสะสมระยะ 7 ทีม">
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234f46e5'/><text x='16' y='23' font-size='18' text-anchor='middle'>🏃</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="hero-kicker">กิจกรรมสะสมคะแนน</p>
+    <h1 id="title">Run Challenge</h1>
+    <p class="hero-range" id="range">—</p>
+    <div class="progress">
+      <div class="progress-bar"><span id="progress-fill" style="width:0%"></span></div>
+      <div class="progress-meta"><span id="progress-text">—</span><span id="progress-days">—</span></div>
+    </div>
+    <p class="updated">
+      <span id="updated">กำลังโหลด…</span>
+      <button class="btn-refresh" id="refresh" type="button" aria-label="โหลดข้อมูลใหม่">↻ รีเฟรช</button>
+    </p>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="alert" id="error" hidden></div>
+  <details class="warn" id="warnings" hidden>
+    <summary><span id="warn-count"></span> รายการที่ระบบไม่นับ — กดดู</summary>
+    <ul id="warn-list"></ul>
+  </details>
+
+  <nav class="tabs" role="tablist" aria-label="หน้า">
+    <button class="tab is-active" role="tab" data-tab="board" aria-selected="true">🏆 อันดับทีม</button>
+    <button class="tab" role="tab" data-tab="daily" aria-selected="false">📈 รายวัน</button>
+    <button class="tab" role="tab" data-tab="team" aria-selected="false">👥 รายทีม</button>
+  </nav>
+
+  <!-- อันดับทีม -->
+  <section class="panel" id="panel-board" role="tabpanel">
+    <ol class="board" id="board"></ol>
+    <div class="card chart-card">
+      <h2>เทียบคะแนนทั้ง 7 ทีม</h2>
+      <div class="chart-box"><canvas id="chart-board"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>กติกา</h2>
+      <ul class="rules" id="rules"></ul>
+    </div>
+  </section>
+
+  <!-- รายวัน -->
+  <section class="panel" id="panel-daily" role="tabpanel" hidden>
+    <div class="card chart-card">
+      <h2>คะแนนสะสมรายวัน</h2>
+      <div class="chart-box tall"><canvas id="chart-cumulative"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <h2>คะแนนที่ได้ในแต่ละวัน</h2>
+      <div class="chart-box"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>ตารางรายวัน</h2>
+      <div class="table-scroll"><table class="table" id="daily-table"></table></div>
+    </div>
+  </section>
+
+  <!-- รายทีม -->
+  <section class="panel" id="panel-team" role="tabpanel" hidden>
+    <div class="chips" id="team-chips" role="tablist" aria-label="เลือกทีม"></div>
+    <div id="team-detail"></div>
+  </section>
+</main>
+
+<footer class="foot wrap">
+  <span id="foot-note"></span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
