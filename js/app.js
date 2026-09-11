@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtx68zzo";
-import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx68zzo";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx68zzo";
-import { USE_SAMPLE } from "./config.js?v=mtx68zzo";
+import { loadAll } from "./sheets.js?v=mtx6ail7";
+import { computeScores, ACTIVITIES, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtx6ail7";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtx6ail7";
+import { USE_SAMPLE } from "./config.js?v=mtx6ail7";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -465,6 +465,7 @@ function renderTeamChips(teams) {
 function renderTeam(t) {
   if (!t) return ($("team-detail").innerHTML = `<p class="empty">ไม่มีข้อมูลทีม</p>`);
   const { rules, daysElapsed } = state;
+  const today = todayIso();
   const maxPerRunner = rules.dailyCap * daysElapsed;
   const sum = (a, digits = 0) => (t.byActivity[a] ? `${fmtNum(t.byActivity[a], digits)}` : "0"); // ยอดรวมต่อกิจกรรมของทีม
   const sportMin = ["badminton", "tennis", "football", "swim", "basketball"].reduce((s, k) => s + (t.byActivity[k] || 0), 0);
@@ -496,7 +497,7 @@ function renderTeam(t) {
     <div class="card" style="--team:${esc(t.color)}">
       <div class="team-head">
         <div class="badge">${esc(t.id)}</div>
-        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน · ส่งผลแล้ว ${t.activeMembers}/${t.members.length} คน</small></div>
+        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน · วันนี้ส่งแล้ว ${t.runners.filter((r) => (r.raw[today] || 0) > 0).length}/${t.members.length} คน · ${t.entries} รายการ</small></div>
         <div class="pts"><b>${fmtPts(t.pts)}</b><small>คะแนน</small></div>
       </div>
       <div class="stat-row">
