@@ -181,7 +181,7 @@ button { font: inherit; cursor: pointer; }
 .hero .btn-entry { margin-left: auto; }
 .form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; }
-.field > span { font-weight: 600; font-size: 0.9rem; }
+.field > span, .field > label { font-weight: 600; font-size: 0.9rem; }
 .field em { font-style: normal; font-weight: 400; color: var(--muted); }
 .field input, .field select {
   font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line);
