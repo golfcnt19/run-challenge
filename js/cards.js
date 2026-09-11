@@ -1,7 +1,7 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
 import { loadAll } from "./sheets.js";
 import { computeScores, CARDS, CARD_TYPES, weekKey } from "./scoring.js";
-import { fmtDateShort, todayIso } from "./format.js";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js";
 import { ENTRY_URL } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
@@ -29,12 +29,21 @@ async function init() {
     cardState = scored.cardState;
     $("range").textContent = `${scored.rules.title} · ${fmtDateShort(scored.rules.startDate)} – ${fmtDateShort(scored.rules.endDate)}`;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
+    renderRules(scored.rules);
     renderChips();
     renderCards();
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`, "card-error");
     $("card-error").hidden = false;
   }
+}
+
+function renderRules(r) {
+  $("cards-lead").innerHTML = `ทีมละ <b>3 ใบ/วีค</b> (จันทร์–อาทิตย์) ชนิดละใบ · <b>วันละ 1 ใบ</b> · ใช้กับวันที่กดเท่านั้น · ใช้แล้วยกเลิกไม่ได้`;
+  $("cards-rules").innerHTML = `
+    <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
+    <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
+    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง</li>`;
 }
 
 function renderChips() {
