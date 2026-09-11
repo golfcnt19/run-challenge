@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mtwqtung";
-import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwqtung";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwqtung";
-import { USE_SAMPLE } from "./config.js?v=mtwqtung";
+import { loadAll } from "./sheets.js?v=mtwr0y48";
+import { computeScores, ACTIVITIES, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mtwr0y48";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mtwr0y48";
+import { USE_SAMPLE } from "./config.js?v=mtwr0y48";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -190,7 +190,8 @@ function renderWeekCards(teams) {
       const c = mine.find((x) => x.date === d);
       if (!c) return `<td class="${d === today ? "is-today" : ""} zero">·</td>`;
       const who = c.card === "carry" ? `${c.runner}→${c.target}` : c.card === "x2" ? c.runner : c.revealed ? `${c.target} (${c.targetTeam.id})` : "?";
-      return `<td class="${d === today ? "is-today" : ""} has-card" title="${esc(cardTitle(c))}"><span class="wc-ic">${CARDS[c.card].icon}</span><small>${esc(who)}</small></td>`;
+      const stacked = c.stacked ? " is-stacked" : "";
+      return `<td class="${d === today ? "is-today" : ""} has-card${stacked}" title="${esc(cardTitle(c))}${c.stacked ? ` — ซ้อนกับทีม ${esc(c.stacked.id)} ไม่มีผลเพิ่ม` : ""}"><span class="wc-ic">${CARDS[c.card].icon}</span><small>${esc(who)}${c.stacked ? " <em>ซ้อน</em>" : ""}</small></td>`;
     }).join("");
     const left = state.cardState[t.id]?.left || [];
     return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td>${cells}<td>${left.length ? left.map((k) => CARDS[k].icon).join(" ") : "–"}</td></tr>`;
