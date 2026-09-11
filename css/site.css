@@ -383,3 +383,5 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 }
 
 .day-hint.is-full { color: var(--danger); font-weight: 600; }
+.runner-log .a { display: flex; flex-direction: column; align-items: flex-end; }
+.runner-log .capped { color: var(--danger); font-size: 0.7rem; white-space: nowrap; }

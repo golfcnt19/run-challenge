@@ -1,6 +1,6 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
 import { loadAll } from "./sheets.js";
-import { computeScores, ACTIVITIES } from "./scoring.js";
+import { computeScores, ACTIVITIES, rawPoints } from "./scoring.js";
 import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso } from "./format.js";
 import { USE_SAMPLE } from "./config.js";
 
@@ -345,7 +345,7 @@ function toggleRunner(li) {
         <span class="d">${fmtDateShort(e.date)}</span>
         <span>${ACTIVITIES[e.activity].icon} ${ACTIVITIES[e.activity].label} ${fmtNum(e.amount, e.activity === "walk" ? 0 : 2)} ${ACTIVITIES[e.activity].unit}</span>
         ${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
-        <span class="a"><b>${fmtPts(r.days[e.date] || 0)}</b> <small>คะแนนวันนั้น</small></span>
+        <span class="a"><b>+${fmtPts(rawPoints(e.activity, e.amount, state.rules))}</b>${(r.raw[e.date] || 0) > state.rules.dailyCap ? `<small class="capped">วันนี้รวม ${fmtPts(r.raw[e.date])} → นับ ${fmtPts(state.rules.dailyCap)}</small>` : ""}</span>
       </li>`).join("")}</ul>`
     : `<p class="empty">ยังไม่มีรายการ</p>`;
   box.hidden = false;
