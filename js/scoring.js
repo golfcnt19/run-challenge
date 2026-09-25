@@ -6,7 +6,10 @@
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   กีฬาที่นับเวลา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส ฟิตเนส โยคะ กระโดดเชือก)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
 //   1 คน ส่งได้ 1 กิจกรรมต่อวัน (ถ้าชีตมีหลายแถว นับแถวแรกเท่านั้น) · ไม่เกิน daily_cap ต่อคนต่อวัน
-//   คะแนนทีม = ผลรวมคะแนนสมาชิก × team_size ÷ จำนวนสมาชิก  (ทีมคนไม่เท่ากันเทียบเป็นทีม team_size คน — ทีม 5 คนไม่เปลี่ยน)
+//   คะแนนทีม = เทียบเป็นทีม team_size (5) คน = ผลรวมคะแนนปกติของสมาชิก × 5 ÷ จำนวนสมาชิก
+//              ทีม 5 คน = ผลรวมตรง ๆ · ทีม 6 คน ×5/6 → เต็มวันละ 25 ทุกทีม
+//              ผลของการ์ดทุกใบต่อทีม = คะแนนที่เปลี่ยนของคนนั้น เท่ากันทุกทีม (ไม่คิดสัดส่วน)
+//              (x2 เต็ม +5 · เดอะแบก +3 → +3 · block คนที่ได้ 5 → −5) — ทีม 5 กับ 6 คนใช้การ์ดได้ผลเท่ากัน
 //
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
@@ -16,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugpgqhx";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugrqexr";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -91,7 +94,7 @@ export function readRules(config) {
     bikeKmForFull: num("bike_km_for_full", 20),
     sportMinutesForFull: num("sport_minutes_for_full", 60),
     sportMinMinutes: num("sport_min_minutes", 15),
-    teamSize: num("team_size", 5), // ขนาดทีมมาตรฐานสำหรับคิดสัดส่วน
+    teamSize: num("team_size", 5), // ขนาดทีมมาตรฐาน — ทีมที่คนไม่เท่านี้คิดสัดส่วน
   };
 }
 
@@ -180,6 +183,7 @@ export function computeScores(data, today = todayIso()) {
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const findMember = (team, name) => team.members.find((m) => m.toLowerCase() === String(name || "").trim().toLowerCase());
   const cards = [];
+  const usedDay = new Set(), usedWeek = new Set(); // โควตา: ทีมละ 1 ใบ/วัน · ชนิดละ 1 ใบ/วีค (Code.gs กันอยู่แล้ว — ตรงนี้กันแถวที่พิมพ์เองในชีต)
   (data.cards || []).forEach((r, i) => {
     const line = i + 2;
     if (!r.date && !r.team_id && !r.card) return;
@@ -206,6 +210,11 @@ export function computeScores(data, today = todayIso()) {
       if (c.targetTeam.id === team.id) return warnings.push(`cards แถว ${line}: block ทีมตัวเองไม่ได้`);
       c.revealed = date < today; // เฉลยหลังจบวัน
     }
+    // นับตามลำดับแถวในชีต: ใบแรกได้ ใบที่เกินโควตาไม่มีผล
+    if (usedDay.has(`${team.id}|${date}`)) return warnings.push(`cards แถว ${line}: ทีม ${team.id} ใช้การ์ดวันที่ ${date} ไปแล้ว (วันละ 1 ใบ) — ไม่นับ`);
+    if (usedWeek.has(`${team.id}|${c.week}|${card}`)) return warnings.push(`cards แถว ${line}: ทีม ${team.id} ใช้ ${CARDS[card].label} ในวีคนี้ไปแล้ว (ชนิดละ 1 ใบ/วีค) — ไม่นับ`);
+    usedDay.add(`${team.id}|${date}`);
+    usedWeek.add(`${team.id}|${c.week}|${card}`);
     cards.push(c);
   });
   const dayOf = (runner, date) => {
@@ -240,19 +249,22 @@ export function computeScores(data, today = todayIso()) {
     else if (d.x2) d.pts = Math.min(base * 2, rules.dailyCap * 2);
     else d.pts = Math.min(base, rules.dailyCap);
   }
-  // ผลของการ์ดแต่ละใบเป็นคะแนน (c.effect = คะแนนที่ทีมได้เพิ่ม/เสีย, c.detail = ข้อความ) — block ที่ยังไม่เฉลย = null
+  // ผลของการ์ดแต่ละใบ: c.personDelta = คะแนนของคนที่เปลี่ยน · c.effect = คะแนนทีม (เฉลี่ย) ที่ได้เพิ่ม/เสีย · c.detail = ข้อความ
+  // block ที่ยังไม่เฉลย = null
   const cap = rules.dailyCap;
   const r2 = (n) => Math.round(n * 100) / 100;
   for (const c of cards) {
     if (c.card === "carry") {
       const t = dayOf(c.target, c.date);
       const withoutIn = t.blockedBy ? 0 : Math.min(t.raw, cap);
-      c.effect = t.pts - withoutIn; // ที่ผู้รับได้เพิ่มจริง (0 ถ้าผู้รับเต็มอยู่แล้ว/โดน block)
+      c.personDelta = t.pts - withoutIn; // ที่ผู้รับได้เพิ่มจริง (0 ถ้าผู้รับเต็มอยู่แล้ว/โดน block)
+      c.effect = c.personDelta; // ผลต่อทีม = ผลต่อคน (ไม่คิดสัดส่วน)
       c.detail = c.amount > 0 ? `${c.target} ${r2(withoutIn)} → ${r2(t.pts)}` : "ผู้ให้ไม่มีส่วนเกิน";
     } else if (c.card === "x2") {
       const d = dayOf(c.runner, c.date);
       const without = d.blockedBy ? 0 : Math.min(d.raw + (d.carriedIn || 0), cap);
-      c.effect = d.pts - without;
+      c.personDelta = d.pts - without;
+      c.effect = c.personDelta; // ผลต่อทีม = ผลต่อคน (ไม่คิดสัดส่วน)
       c.detail = d.blockedBy ? "โดน block ไม่มีผล" : d.raw + (d.carriedIn || 0) > 0 ? `${c.runner} ${r2(without)} → ${r2(d.pts)}` : `${c.runner} ไม่ได้ส่งผล`;
     } else if (c.revealed) {
       const d = dayOf(c.target, c.date);
@@ -266,7 +278,10 @@ export function computeScores(data, today = todayIso()) {
         // ถ้าไม่โดน block จะได้เท่าไร (รวม x2/carry ที่มี)
         const base = d.raw + (d.carriedIn || 0);
         const would = d.x2 ? Math.min(base * 2, cap * 2) : Math.min(base, cap);
-        c.effect = -would; // ลบจากทีมเป้าหมาย ครั้งเดียวต่อคนต่อวัน
+        const plain = Math.min(d.raw, cap);
+        c.would = would; // คะแนนของคนที่โดน — ใช้กับฉลอง block ใหญ่
+        c.personDelta = -would;
+        c.effect = -would; // เท่ากันทุกทีม (ทีม 6 คนก็เสียเต็ม ไม่ใช่ ×5/6)
         c.detail = would > 0 ? `${c.target} ${r2(would)} → 0` : `${c.target} ไม่ได้ส่งผลอยู่แล้ว`;
       }
     } else {
@@ -279,13 +294,16 @@ export function computeScores(data, today = todayIso()) {
   const runners = new Map();
   for (const t of teams)
     for (const m of t.members)
-      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, cardDays: {} });
+      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, bonus: {}, blocked: {}, cardDays: {} });
   for (const d of perRunnerDay.values()) {
     const r = runners.get(d.runner);
     r.pts += d.pts;
     if (d.raw > 0) r.daysActive++;
     if (d.pts >= rules.dailyCap) r.fullDays++;
     r.days[d.date] = d.pts;
+    const plain = d.blockedBy ? 0 : Math.min(d.raw, rules.dailyCap);
+    if (d.pts > plain) r.bonus[d.date] = d.pts - plain; // ส่วนที่ได้เพิ่มจาก x2 / เดอะแบก
+    if (d.blockedBy) r.blocked[d.date] = d.x2 ? Math.min((d.raw + (d.carriedIn || 0)) * 2, rules.dailyCap * 2) : Math.min(d.raw + (d.carriedIn || 0), rules.dailyCap); // คะแนนที่ถูกตัด
     r.raw[d.date] = d.raw;
     if (d.blockedBy || d.x2 || d.carriedIn || d.carriedOut) r.cardDays[d.date] = { blockedBy: d.blockedBy, x2: d.x2, carriedIn: d.carriedIn, carriedFrom: d.carriedFrom, carriedOut: d.carriedOut };
     for (const [a, v] of Object.entries(d.byActivity)) r.byActivity[a] = (r.byActivity[a] || 0) + v;
@@ -296,8 +314,16 @@ export function computeScores(data, today = todayIso()) {
   const days = challengeDays(rules, today, lastEntryDate);
   const teamStats = teams.map((t) => {
     const rs = t.members.map((m) => runners.get(m));
-    const scale = rules.teamSize / Math.max(1, t.members.length); // ทีม 6 คน = 5/6 · ทีม 5 คน = 1
-    const daily = days.map((d) => rs.reduce((s, r) => s + (r.days[d] || 0), 0) * scale);
+    const n = Math.max(1, t.members.length);
+    const k = rules.teamSize / n; // ทีม 5 คน = 1 · ทีม 6 คน = 5/6
+    // คะแนนปกติคิดสัดส่วน × k · ผลการ์ดนับเต็มเท่ากันทุกทีม:
+    //   ปกติ      → (คะแนน − โบนัส) × k + โบนัส
+    //   โดน block → (ที่จะได้ถ้าไม่โดน) − คะแนนที่ถูกตัดเต็ม = คะแนนปกติ × (k − 1)
+    // ทีม 6 คนที่ส่งอยู่คนเดียวแล้วโดน block อาจติดลบนิดหน่อย → วันนั้นไม่ต่ำกว่า 0
+    const plainOf = (r, d) => Math.min(r.raw[d] || 0, rules.dailyCap);
+    const daily = days.map((d) => Math.max(0, rs.reduce((s, r) => s + (r.blocked[d] !== undefined
+      ? plainOf(r, d) * (k - 1) // ทีม 5 คน = 0 พอดี
+      : ((r.days[d] || 0) - (r.bonus[d] || 0)) * k + (r.bonus[d] || 0)), 0)));
     const cumulative = [];
     daily.reduce((s, v) => (cumulative.push(s + v), s + v), 0);
     const byActivity = {};
@@ -305,15 +331,14 @@ export function computeScores(data, today = todayIso()) {
     return {
       ...t,
       runners: [...rs].sort((a, b) => b.pts - a.pts),
-      rawPts: rs.reduce((s, r) => s + r.pts, 0), // ผลรวมจริงของสมาชิก (ก่อนปรับสัดส่วน)
-      pts: rs.reduce((s, r) => s + r.pts, 0) * scale,
-      scale,
+      rawPts: rs.reduce((s, r) => s + r.pts, 0), // ผลรวมจริงของสมาชิก (ก่อนเฉลี่ย)
+      pts: daily.reduce((s, v) => s + v, 0),
       activeMembers: rs.filter((r) => r.daysActive > 0).length,
       entries: entries.filter((e) => e.team.id === t.id).length,
       byActivity,
       daily,
       cumulative,
-      maxPossible: rules.teamSize * rules.dailyCap * days.length,
+      maxPossible: rules.teamSize * rules.dailyCap * days.length, // เต็มวันละ 25 ทุกทีม
     };
   });
   const rankOf = (list, key) => {
@@ -340,7 +365,7 @@ export function computeScores(data, today = todayIso()) {
   // --- สถิติรายวัน: ทีมชนะวัน (🏆), ดาวประจำวัน (⭐), ยอดรวม, คนส่งผล ---
   const runnerList = [...runners.values()];
   const dayStats = days.map((date, i) => {
-    const total = teamStats.reduce((s, t) => s + t.daily[i], 0);
+    const total = runnerList.reduce((s, r) => s + (r.days[date] || 0), 0); // ผลรวมจริงของทุกคน
     const submitters = runnerList.filter((r) => r.days[date] > 0).length;
     const top = Math.max(0, ...teamStats.map((t) => t.daily[i]));
     const winners = top > 0 ? teamStats.filter((t) => t.daily[i] === top) : [];
@@ -393,13 +418,13 @@ export function computeScores(data, today = todayIso()) {
     const prevLeader = [...teamStats].sort((a, b) => b.prevPts - a.prevPts)[0];
     if (prevLeader && teamStats[0].id !== prevLeader.id && teamStats[0].pts > 0) events.push({ key: `leader-${days[lastIdx]}-${teamStats[0].id}`, icon: "👑", text: `${teamStats[0].name} แซงขึ้นเป็นผู้นำ!` });
   }
-  for (const c of cards) if (c.card === "x2" && c.date === days[lastIdx] && c.effect >= rules.dailyCap) events.push({ key: `x2max-${c.date}-${c.runner}`, icon: "✖️2", text: `${c.runner} (${c.team.name}) ใช้ x2 ได้เต็ม ${fmtP(rules.dailyCap * 2)} คะแนน!` });
+  for (const c of cards) if (c.card === "x2" && c.date === days[lastIdx] && c.personDelta >= rules.dailyCap) events.push({ key: `x2max-${c.date}-${c.runner}`, icon: "✖️2", text: `${c.runner} (${c.team.name}) ใช้ x2 ได้เต็ม ${fmtP(rules.dailyCap * 2)} คะแนน!` });
   for (const t of teamStats) {
     let streak = 0;
     for (let i = lastIdx; i >= 0 && dayStats[i].winners.includes(t); i--) streak++;
     if (streak >= 3) events.push({ key: `streak-${days[lastIdx]}-${t.id}`, icon: "🏆", text: `${t.name} ชนะวันติดกัน ${streak} วัน!` });
   }
-  for (const c of cards) if (c.card === "block" && c.revealed && c.date === days[lastIdx - 1] && c.effect <= -rules.dailyCap * 2) events.push({ key: `bigblock-${c.date}-${c.target}`, icon: "🛡️", text: `${c.team.name} block ${c.target} ตัดไป ${fmtP(-c.effect)} คะแนน!` });
+  for (const c of cards) if (c.card === "block" && c.revealed && c.date === days[lastIdx - 1] && c.would >= rules.dailyCap * 2) events.push({ key: `bigblock-${c.date}-${c.target}`, icon: "🛡️", text: `${c.team.name} block ${c.target} ที่ทำได้ ${fmtP(c.would)} คะแนน!` });
 
   const totalDays = daysInclusive(rules.startDate, rules.endDate);
   const finished = today > rules.endDate;

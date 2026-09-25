@@ -1,5 +1,9 @@
 // โหลดข้อมูลจาก Google Sheets (CSV) หรือจาก sample-data/ ตอนพัฒนา
-import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mugpgqhx";
+import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mugrqexr";
+import { DEV, todayIso } from "./format.js?v=mugrqexr";
+
+// ข้อมูลจำลองทั้งเดือน (tools/simulate.js) — เฉพาะในเครื่อง: localhost:4174/?sim&today=2026-10-31
+const SIM = DEV && new URLSearchParams(location.search).has("sim");
 
 // CSV parser เล็ก ๆ รองรับ quote, comma ในค่า, และ "" ที่หมายถึง "
 export function parseCsv(text) {
@@ -48,6 +52,7 @@ export function csvToObjects(text) {
 }
 
 function tabUrl(tab) {
+  if (SIM) return `sample-data/sim/${tab}.csv?t=${Date.now()}`;
   if (USE_SAMPLE) return `sample-data/${tab}.csv?t=${Date.now()}`;
   const u = new URL(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`);
   u.searchParams.set("tqx", "out:csv");
@@ -71,5 +76,9 @@ export async function loadAll() {
   ]);
   const cfg = {};
   for (const r of config) if (r.key) cfg[r.key] = r.value;
+  if (SIM) { // จำลองย้อนเวลา: ตัดข้อมูลหลัง ?today= ออก จะได้เห็นหน้าตาวันนั้นจริง ๆ
+    const t = todayIso();
+    return { teams, runs: runs.filter((r) => r.date <= t), config: cfg, cards: cards.filter((r) => r.date <= t), loadedAt: new Date() };
+  }
   return { teams, runs, config: cfg, cards, loadedAt: new Date() };
 }

@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mugpgqhx";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugpgqhx";
-import { fmtDateLong } from "./format.js?v=mugpgqhx";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugpgqhx";
-import { ENTRY_URL } from "./config.js?v=mugpgqhx";
+import { loadAll } from "./sheets.js?v=mugrqexr";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugrqexr";
+import { fmtDateLong } from "./format.js?v=mugrqexr";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugrqexr";
+import { ENTRY_URL } from "./config.js?v=mugrqexr";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -101,7 +101,8 @@ function renderRules(r) {
   $("cards-rules").innerHTML = `
     <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
     <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
-    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>`;
+    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>
+    <li>👥 การ์ดให้ผล<b>เท่ากันทุกทีม</b> ทั้งทีม 5 และ 6 คน (ไม่คิดสัดส่วน) — x2 เต็ม ทีม +${fmtPts(r.dailyCap)} · โดน block คนที่ได้ ${fmtPts(r.dailyCap)} ทีม −${fmtPts(r.dailyCap)}</li>`;
   const cap = r.dailyCap, p = fmtPts;
   $("cards-examples").innerHTML = `
     <div class="ex"><div class="ex-h">🎒 เดอะแบก</div>

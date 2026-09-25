@@ -32,7 +32,12 @@ export function toIso(d) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// จำลองวันที่ได้เฉพาะตอนเปิดในเครื่อง: localhost:4174/?today=2026-10-31 (เว็บจริงไม่มีผล)
+export const DEV = typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const TODAY_OVERRIDE = DEV ? new URLSearchParams(location.search).get("today") : null;
+
 export function todayIso() {
+  if (TODAY_OVERRIDE && /^\d{4}-\d{2}-\d{2}$/.test(TODAY_OVERRIDE)) return TODAY_OVERRIDE;
   return toIso(new Date());
 }
 

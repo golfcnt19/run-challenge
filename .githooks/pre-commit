@@ -1,4 +1,8 @@
 #!/bin/sh
+# เทสต์สูตรคะแนนต้องผ่านก่อน commit ทุกครั้ง (node --test, ไม่มี dependency)
+if git diff --cached --name-only | grep -qE '^(js/scoring\.js|js/format\.js|tests/)'; then
+  node --test tests/scoring.test.js >/dev/null 2>&1 || { echo "✖ เทสต์สูตรคะแนนไม่ผ่าน — รัน: node --test tests/scoring.test.js"; exit 1; }
+fi
 # bump cache-busting version on every commit that touches web files
 if git diff --cached --name-only | grep -qE '^(js/|css/|index\.html|entry\.html|cards\.html)'; then
   node tools/bump-version.js && git add js/*.js index.html entry.html cards.html version.json
