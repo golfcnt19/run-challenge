@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mugickj8";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugickj8";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugickj8";
-import { USE_SAMPLE } from "./config.js?v=mugickj8";
+import { loadAll } from "./sheets.js?v=mugj8bev";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugj8bev";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugj8bev";
+import { USE_SAMPLE } from "./config.js?v=mugj8bev";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -48,7 +48,9 @@ function render(loadedAt) {
   } else if (today > rules.endDate) $("progress-text").textContent = "จบกิจกรรมแล้ว 🎉";
   else $("progress-text").textContent = ""; // ระหว่างแข่งโชว์แค่ "เหลืออีก N วัน" ฝั่งขวาพอ
   const daysLeft = Math.max(0, totalDays - daysElapsed);
-  $("progress-days").textContent = today > rules.endDate ? `${pct}%` : `เหลืออีก ${daysLeft} วัน · ${pct}%`;
+  // ก่อนเริ่ม: ฝั่งซ้ายนับถอยหลังวันเริ่มอยู่แล้ว ฝั่งขวาบอกวันประกาศผล (วันถัดจาก end_date = วันที่โพเดียมขึ้น)
+  $("progress-days").textContent = today < rules.startDate ? `ประกาศผล ${fmtDateShort(addDays(rules.endDate, 1))}`
+    : today > rules.endDate ? `${pct}%` : `เหลืออีก ${daysLeft} วัน · ${pct}%`;
 
   $("updated").textContent = `อัปเดต ${fmtDateShort(today)} ${fmtTime(loadedAt)}${USE_SAMPLE ? " · ข้อมูลตัวอย่าง" : ""}`;
 
@@ -406,6 +408,7 @@ function renderDaily(teams, days) {
   };
   if (!days.length) {
     charts["chart-daily"]?.destroy();
+    delete charts["chart-daily"]; // ไม่งั้นตอนสลับแท็บจะ resize() กราฟที่ทำลายแล้ว → error
     $("daily-table").innerHTML = `<tr><td class="empty">ยังไม่ถึงวันเริ่มกิจกรรม</td></tr>`;
     return;
   }

@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugickj8";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugj8bev";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -81,7 +81,7 @@ export function readRules(config) {
   };
   return {
     title: config.title || "Run Challenge",
-    startDate: config.start_date || "2026-09-15",
+    startDate: config.start_date || "2026-10-01",
     endDate: config.end_date || "2026-10-30",
     dailyCap: num("daily_cap", 5),
     pointsPerRunKm: num("points_per_run_km", 1),
