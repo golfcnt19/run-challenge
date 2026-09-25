@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mugjdhwb";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugjdhwb";
-import { fmtDateLong } from "./format.js?v=mugjdhwb";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugjdhwb";
-import { ENTRY_URL } from "./config.js?v=mugjdhwb";
+import { loadAll } from "./sheets.js?v=mugjqw4z";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugjqw4z";
+import { fmtDateLong } from "./format.js?v=mugjqw4z";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugjqw4z";
+import { ENTRY_URL } from "./config.js?v=mugjqw4z";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -51,7 +51,7 @@ function cardLine(c) {
     : c.revealed ? `${esc(c.target)} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
   let eff;
   if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
-  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">ซ้อน</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">${c.dupOf?.date === c.date ? "ซ้อน" : "ซ้ำในวีค"}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   return `<li>
     <span class="d">${fmtDateShort(c.date)}</span>
@@ -101,7 +101,7 @@ function renderRules(r) {
   $("cards-rules").innerHTML = `
     <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
     <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
-    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง</li>`;
+    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>`;
   const cap = r.dailyCap, p = fmtPts;
   $("cards-examples").innerHTML = `
     <div class="ex"><div class="ex-h">🎒 เดอะแบก</div>
@@ -115,7 +115,7 @@ function renderRules(r) {
     <div class="ex"><div class="ex-h">✖️2 คูณสอง</div>
       <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
         <tr><td>สุ่มได้ Koi · Koi วิ่ง 3 กม.</td><td>3 × 2 = <b>6</b> <small>(เกิน ${p(cap)} ได้)</small></td></tr>
-        <tr><td>สุ่มได้ Koi · Koi วิ่ง 5 กม. + เดิน 4,000 ก้าว</td><td>ดิบ 7 → เพดาน ${p(cap)} → ×2 = <b>${p(cap * 2)}</b> <small>(สูงสุด)</small></td></tr>
+        <tr><td>สุ่มได้ Koi · Koi วิ่ง 7 กม.</td><td>ดิบ 7 → เพดาน ${p(cap)} → ×2 = <b>${p(cap * 2)}</b> <small>(สูงสุด)</small></td></tr>
         <tr><td>สุ่มได้ Koi · Koi ไม่ได้ส่งผลวันนั้น</td><td>0 × 2 = <b>0</b> — การ์ดเสียเปล่า</td></tr>
       </tbody></table>
     </div>
@@ -123,7 +123,8 @@ function renderRules(r) {
       <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ผล</th></tr></thead><tbody>
         <tr><td>ทีม A block Golf (ทีม G) · Golf วิ่ง 8 กม.</td><td>วันนี้ยังโชว์ Golf ${p(cap)}<br><b>พรุ่งนี้กลายเป็น 0</b> และขึ้นป้าย 🛡️</td></tr>
         <tr><td>Golf โดน block และทีม G ใช้ x2 สุ่มได้ Golf พอดี</td><td>block ชนะ → <b>0</b> <small>(x2 เสียเปล่า)</small></td></tr>
-        <tr><td>ทีม A และทีม B block Golf วันเดียวกัน</td><td>Golf = <b>0</b> · ทั้งสองทีมเสียใบ ไม่รู้กัน</td></tr>
+        <tr><td>ทีม A block Golf วันจันทร์ · ทีม C จะ block Golf วันพุธ</td><td><b>ไม่ได้</b> — Golf โดนไปแล้ววีคนี้ (ชื่อเลือกไม่ได้) · ใบของทีม C ไม่เสีย</td></tr>
+        <tr><td>ทีม A และทีม B block Golf วันเดียวกัน</td><td>Golf = <b>0</b> (มีผลใบเดียว) · ทั้งสองทีมเสียใบ ไม่รู้กัน</td></tr>
       </tbody></table>
     </div>
     <div class="ex"><div class="ex-h">📅 โควตา</div>
@@ -196,7 +197,9 @@ function renderCardForm() {
   if (pickedCard === "block") $("cf-team").addEventListener("change", () => {
     const x = teams.find((y) => y.id === $("cf-team").value);
     const sel = $("cf-target");
-    sel.innerHTML = x ? opt(x.members) : `<option value="">— เลือกทีมก่อน —</option>`;
+    const wk = weekKey(todayIso());
+    const hit = new Set(scored.cards.filter((c) => c.card === "block" && c.revealed && c.week === wk && c.targetTeam.id === x?.id).map((c) => c.target));
+    sel.innerHTML = x ? `<option value="">— เลือก —</option>` + x.members.map((m) => `<option value="${esc(m)}"${hit.has(m) ? " disabled" : ""}>${esc(m)}${hit.has(m) ? " (โดน block แล้ววีคนี้)" : ""}</option>`).join("") : `<option value="">— เลือกทีมก่อน —</option>`;
     sel.disabled = !x;
   });
   $("cf-submit").addEventListener("click", useCard);

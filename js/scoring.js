@@ -12,9 +12,11 @@
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
 //   x2    (✖️2)         ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 เกินเพดานได้ สูงสุด 2×เพดาน
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
+//                        1 คนโดน block ได้ 1 วัน/วีค · วันเดียวกันหลายทีมซ้อนได้ = มีผลใบเดียว เสียทุกใบ
+//                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugjdhwb";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugjqw4z";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -212,8 +214,16 @@ export function computeScores(data, today = todayIso()) {
     if (!d) perRunnerDay.set(k, (d = { runner, team: runnerTeam.get(runner.toLowerCase()), date, raw: 0, pts: 0, byActivity: {} }));
     return d;
   };
-  // block (ที่เฉลยแล้ว) ชนะทุกอย่าง
-  for (const c of cards) if (c.card === "block" && c.revealed) { const d = dayOf(c.target, c.date); (d.blockedBy ||= []).push(c.team); }
+  // block (ที่เฉลยแล้ว) ชนะทุกอย่าง · นับเฉพาะใบแรกของคนนั้นในวีค (เรียงวันที่ แล้วตามแถว)
+  const firstBlock = new Map(); // "ชื่อ|วีค" → การ์ดใบแรก
+  const blocks = cards.filter((c) => c.card === "block" && c.revealed).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.line - b.line));
+  for (const c of blocks) {
+    const k = `${c.target}|${c.week}`;
+    if (firstBlock.has(k)) { c.dupOf = firstBlock.get(k); continue; }
+    firstBlock.set(k, c);
+    const d = dayOf(c.target, c.date);
+    (d.blockedBy ||= []).push(c.team);
+  }
   // carry: โอนส่วนเกินเพดาน สูงสุด = เพดาน
   for (const c of cards) if (c.card === "carry") {
     const g = dayOf(c.runner, c.date), t = dayOf(c.target, c.date);
@@ -246,11 +256,12 @@ export function computeScores(data, today = todayIso()) {
       c.detail = d.blockedBy ? "โดน block ไม่มีผล" : d.raw + (d.carriedIn || 0) > 0 ? `${c.runner} ${r2(without)} → ${r2(d.pts)}` : `${c.runner} ไม่ได้ส่งผล`;
     } else if (c.revealed) {
       const d = dayOf(c.target, c.date);
-      const first = d.blockedBy[0]; // ทีมแรกที่ block คนนี้ในวันนั้น (ตามลำดับแถว)
-      if (first !== c.team) {
+      if (c.dupOf) {
         c.effect = 0;
-        c.stacked = first;
-        c.detail = `ซ้อนกับทีม ${first.id} — ไม่มีผลเพิ่ม`;
+        c.stacked = c.dupOf.team;
+        c.detail = c.dupOf.date === c.date
+          ? `ซ้อนกับทีม ${c.dupOf.team.id} วันเดียวกัน — มีผลใบเดียว`
+          : `${c.target} โดนทีม ${c.dupOf.team.id} block ไปแล้ววีคนี้ — ไม่มีผล`;
       } else {
         // ถ้าไม่โดน block จะได้เท่าไร (รวม x2/carry ที่มี)
         const base = d.raw + (d.carriedIn || 0);

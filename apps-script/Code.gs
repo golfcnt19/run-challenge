@@ -187,7 +187,7 @@ function useCard_(b) {
   // โควตา: วันนี้ยังไม่ใช้ และวีคนี้ยังไม่ใช้ชนิดนี้
   const week = weekKey_(today);
   const last = sh.getLastRow();
-  const rows = last >= 2 ? sh.getRange(2, 1, last - 1, 3).getValues() : [];
+  const rows = last >= 2 ? sh.getRange(2, 1, last - 1, 6).getValues() : [];
   for (const r of rows) {
     const d = r[0] instanceof Date ? Utilities.formatDate(r[0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(r[0]);
     if (!d || String(r[1]).trim().toUpperCase() !== teamId) continue;
@@ -210,6 +210,13 @@ function useCard_(b) {
     if (targetTeam === teamId) return { ok: false, error: "block ทีมตัวเองไม่ได้" };
     targetRunner = findMember_(tt, b.target_runner);
     if (!targetRunner) return { ok: false, error: "block: ไม่พบชื่อ " + b.target_runner + " ในทีม " + targetTeam };
+    // 1 คนโดน block ได้ 1 วัน/วีค (จากทีมไหนก็ได้) · วันเดียวกันซ้อนได้ (มีผลใบเดียว เสียทุกใบ ไม่รู้กัน) — ไม่บอกว่าทีมไหน
+    for (const r of rows) {
+      const d = r[0] instanceof Date ? Utilities.formatDate(r[0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(r[0]);
+      if (!d || d === today || weekKey_(d) !== week || String(r[2]).trim().toLowerCase() !== "block") continue;
+      if (String(r[5]).trim().toLowerCase() === targetRunner.toLowerCase())
+        return { ok: false, error: targetRunner + " โดน block ไปแล้ววีคนี้ (1 คนโดนได้ 1 ครั้ง/วีค) — เลือกคนอื่น การ์ดยังไม่เสีย", code: "BLOCKED_WEEK" };
+    }
   }
 
   const stamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
