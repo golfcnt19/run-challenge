@@ -1,5 +1,5 @@
 // โหลดข้อมูลจาก Google Sheets (CSV) หรือจาก sample-data/ ตอนพัฒนา
-import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mugi3t1s";
+import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mugickj8";
 
 // CSV parser เล็ก ๆ รองรับ quote, comma ในค่า, และ "" ที่หมายถึง "
 export function parseCsv(text) {

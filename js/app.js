@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mugi3t1s";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugi3t1s";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugi3t1s";
-import { USE_SAMPLE } from "./config.js?v=mugi3t1s";
+import { loadAll } from "./sheets.js?v=mugickj8";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugickj8";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugickj8";
+import { USE_SAMPLE } from "./config.js?v=mugickj8";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -79,7 +79,7 @@ const BADGES = {
   stage:   { label: "🏆 นักล่าสเตจ",    title: "ชนะรายวัน (🏆) มากที่สุด อย่างน้อย 2 วัน" },
   sharp:   { label: "🎯 การ์ดแม่น",     title: "ใช้การ์ดแล้วได้ผลทุกใบ ไม่มีใบเสียเปล่า (อย่างน้อย 2 ใบ) มากที่สุด" },
   blocked: { label: "🛡️ เป้าสายตา",     title: "โดน block มากที่สุด (อย่างน้อย 2 ครั้ง)" },
-  steady:  { label: "🔁 ทีมสม่ำเสมอ",   title: "สมาชิกที่ส่งผลเกิน 80% ของวันมีมากที่สุด (อย่างน้อย 3 คน หลังผ่านไป 5 วัน)" },
+  steady:  { label: "🔁 ทีมสม่ำเสมอ",   title: "สมาชิกที่ส่งผลเกิน 80% ของวันมีมากที่สุด (ดูเป็นสัดส่วนของทีม อย่างน้อย 60% หลังผ่านไป 5 วัน)" },
 };
 
 // 3 วันสุดท้าย: ข้อความ "เหลืออีก N วัน" ในแถบเดิมเปลี่ยนเป็นสีทอง + 🔥 (วันปกติไม่มีอะไรเพิ่ม)
@@ -124,7 +124,7 @@ function renderPodium(teams, rules) {
   const mvp = state.runners[0];
   const totalKm = state.entries.filter((e) => ["run", "treadmill", "bike"].includes(e.activity)).reduce((s, e) => s + e.amount, 0);
   const totalSteps = state.entries.filter((e) => e.activity === "walk").reduce((s, e) => s + e.amount, 0);
-  const totalPts = teams.reduce((s, t) => s + t.pts, 0);
+  const totalPts = teams.reduce((s, t) => s + t.rawPts, 0);
   el.innerHTML = `
     <h2>🏁 จบกิจกรรมแล้ว!</h2>
     <p class="sub">${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)} · ${state.totalDays} วัน · ${state.entries.length} รายการ</p>
@@ -186,8 +186,7 @@ async function replayTrack() {
   if (!label) { label = document.createElement("div"); label.className = "replay-day"; track.appendChild(label); }
   const teams = state.teams;
   const { totalDays } = state;
-  const members = Math.max(1, ...teams.map((t) => t.members.length));
-  const finish = members * state.rules.dailyCap * totalDays;
+  const finish = state.rules.teamSize * state.rules.dailyCap * totalDays;
   const dots = new Map([...track.querySelectorAll(".lane")].map((l) => [l.dataset.team, l.querySelector(".runner-dot")]));
   // ใช้สเกลของโหมดปัจจุบัน: full = ÷เส้นชัย, zoom = ช่วงคะแนนสุดท้าย
   const leader = Math.max(0, ...teams.map((t) => t.pts)), lowest = Math.min(...teams.map((t) => t.pts));
@@ -220,6 +219,7 @@ function renderBoard(teams, rules) {
       if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
       if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
       else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
+      if (t.scale !== 1) tags.push(`<span class="tag gap" title="คะแนนรวมจริง ${fmtPts(t.rawPts)} × ${rules.teamSize}/${t.members.length}">👥 ${t.members.length} คน ×${rules.teamSize}/${t.members.length}</span>`);
       for (const bk of t.badges || []) tags.push(`<span class="tag badge-fun" title="${BADGES[bk].title}">${BADGES[bk].label}</span>`);
       return `
       <li class="team-card ${t.pts > 0 && t.rank <= 3 ? `is-top top${t.rank}` : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
@@ -259,8 +259,7 @@ try { trackMode = localStorage.getItem("rc-track") || "zoom"; } catch {}
 
 function renderTrack(teams, rules) {
   const { totalDays, daysElapsed } = state;
-  const members = Math.max(1, ...teams.map((t) => t.members.length));
-  const finish = members * rules.dailyCap * totalDays;
+  const finish = rules.teamSize * rules.dailyCap * totalDays;
   const leader = Math.max(0, ...teams.map((t) => t.pts));
   const lowest = Math.min(...teams.map((t) => t.pts));
   const zoom = trackMode === "zoom" && leader > 0;
@@ -353,7 +352,7 @@ function renderRules(r) {
     <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>🏸 แบด · 🎾 เทนนิส · ⚽ ฟุตบอล · 🏊 ว่ายน้ำ · 🏀 บาส · 🏋️ ฟิตเนส · 🧘 โยคะ · 🪢 กระโดดเชือก <b>${fmtNum(r.sportMinutesForFull)} นาที = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ)</li>
     <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
-    <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน</li>
+    <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน · ทีมที่ไม่ใช่ ${fmtNum(r.teamSize)} คน <b>คิดตามสัดส่วน</b> (ผลรวม × ${fmtNum(r.teamSize)} ÷ จำนวนคน เช่น ทีม 6 คน × ${fmtNum(r.teamSize)}/6)</li>
     <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
   $("badges-rules").innerHTML = Object.values(BADGES).map((b) => `<li><b>${b.label}</b> — ${b.title}</li>`).join("");
 }
@@ -501,7 +500,7 @@ function renderTeam(t) {
       <div class="team-head">
         <div class="badge">${esc(t.id)}</div>
         <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน · วันนี้ส่งแล้ว ${t.runners.filter((r) => (r.raw[today] || 0) > 0).length}/${t.members.length} คน · ${t.entries} รายการ</small></div>
-        <div class="pts"><b>${fmtPts(t.pts)}</b><small>คะแนน</small></div>
+        <div class="pts"><b>${fmtPts(t.pts)}</b><small>${t.scale !== 1 ? `รวมจริง ${fmtPts(t.rawPts)} × ${rules.teamSize}/${t.members.length}` : "คะแนน"}</small></div>
       </div>
       <div class="stat-row">
         <div class="stat"><b>${sum("run", 1)}</b><small>🏃 วิ่งสวน กม.</small></div>

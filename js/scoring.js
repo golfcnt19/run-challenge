@@ -6,7 +6,7 @@
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   กีฬาที่นับเวลา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส ฟิตเนส โยคะ กระโดดเชือก)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
 //   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
-//   คะแนนทีม = ผลรวมคะแนนสมาชิก
+//   คะแนนทีม = ผลรวมคะแนนสมาชิก × team_size ÷ จำนวนสมาชิก  (ทีมคนไม่เท่ากันเทียบเป็นทีม team_size คน — ทีม 5 คนไม่เปลี่ยน)
 //
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugi3t1s";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugickj8";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -89,6 +89,7 @@ export function readRules(config) {
     bikeKmForFull: num("bike_km_for_full", 20),
     sportMinutesForFull: num("sport_minutes_for_full", 60),
     sportMinMinutes: num("sport_min_minutes", 15),
+    teamSize: num("team_size", 5), // ขนาดทีมมาตรฐานสำหรับคิดสัดส่วน
   };
 }
 
@@ -280,7 +281,8 @@ export function computeScores(data, today = todayIso()) {
   const days = challengeDays(rules, today, lastEntryDate);
   const teamStats = teams.map((t) => {
     const rs = t.members.map((m) => runners.get(m));
-    const daily = days.map((d) => rs.reduce((s, r) => s + (r.days[d] || 0), 0));
+    const scale = rules.teamSize / Math.max(1, t.members.length); // ทีม 6 คน = 5/6 · ทีม 5 คน = 1
+    const daily = days.map((d) => rs.reduce((s, r) => s + (r.days[d] || 0), 0) * scale);
     const cumulative = [];
     daily.reduce((s, v) => (cumulative.push(s + v), s + v), 0);
     const byActivity = {};
@@ -288,13 +290,15 @@ export function computeScores(data, today = todayIso()) {
     return {
       ...t,
       runners: [...rs].sort((a, b) => b.pts - a.pts),
-      pts: rs.reduce((s, r) => s + r.pts, 0),
+      rawPts: rs.reduce((s, r) => s + r.pts, 0), // ผลรวมจริงของสมาชิก (ก่อนปรับสัดส่วน)
+      pts: rs.reduce((s, r) => s + r.pts, 0) * scale,
+      scale,
       activeMembers: rs.filter((r) => r.daysActive > 0).length,
       entries: entries.filter((e) => e.team.id === t.id).length,
       byActivity,
       daily,
       cumulative,
-      maxPossible: t.members.length * rules.dailyCap * days.length,
+      maxPossible: rules.teamSize * rules.dailyCap * days.length,
     };
   });
   const rankOf = (list, key) => {
@@ -364,7 +368,7 @@ export function computeScores(data, today = todayIso()) {
   pickMax("stage", (t) => t.stageWins, 2);
   pickMax("sharp", (t) => { const used = cards.filter((c) => c.team.id === t.id && c.effect !== null); return used.length >= 2 && used.every((c) => c.effect !== 0) ? used.length : -1; }, 2);
   pickMax("blocked", (t) => cards.filter((c) => c.card === "block" && c.revealed && c.targetTeam.id === t.id && !c.stacked).length, 2);
-  pickMax("steady", (t) => days.length >= 5 ? t.runners.filter((r) => r.daysActive >= days.length * 0.8).length : -1, 3);
+  pickMax("steady", (t) => days.length >= 5 ? t.runners.filter((r) => r.daysActive >= days.length * 0.8).length / t.members.length : -1, 0.6);
   for (const t of teamStats) t.badges = badges[t.id] || [];
 
   // --- เหตุการณ์เด่นของวันล่าสุด (สำหรับฉลอง) ---
