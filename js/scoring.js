@@ -4,7 +4,7 @@
 //   วิ่งสวน / วิ่งลู่   1 กม. = points_per_run_km คะแนน
 //   เดิน               walk_steps_for_full ก้าว = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
-//   กีฬา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
+//   กีฬาที่นับเวลา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส ฟิตเนส โยคะ กระโดดเชือก)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
 //   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
 //   คะแนนทีม = ผลรวมคะแนนสมาชิก
 //
@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mtx6fz6u";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugi3t1s";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -26,7 +26,13 @@ export const ACTIVITIES = {
   football:  { label: "ฟุตบอล",      unit: "นาที", icon: "⚽", timed: true },
   swim:      { label: "ว่ายน้ำ",      unit: "นาที", icon: "🏊", timed: true },
   basketball:{ label: "บาสเกตบอล",   unit: "นาที", icon: "🏀", timed: true },
+  gym:       { label: "ฟิตเนส",      unit: "นาที", icon: "🏋️", timed: true },
+  yoga:      { label: "โยคะ",        unit: "นาที", icon: "🧘", timed: true },
+  jumprope:  { label: "กระโดดเชือก", unit: "นาที", icon: "🪢", timed: true },
 };
+
+// กิจกรรมที่นับเป็นนาที — อย่าไล่พิมพ์รายชื่อซ้ำที่อื่น ให้ import ตัวนี้ไปใช้
+export const TIMED = Object.keys(ACTIVITIES).filter((k) => ACTIVITIES[k].timed);
 
 // ให้แอดมินพิมพ์ในชีตเป็นไทยหรืออังกฤษก็ได้
 const ALIASES = {
@@ -39,6 +45,9 @@ const ALIASES = {
   football: ["football", "soccer", "ฟุตบอล", "บอล", "เตะบอล", "เตะฟุตบอล"],
   swim: ["swim", "swimming", "ว่ายน้ำ", "ว่าย"],
   basketball: ["basketball", "บาส", "บาสเกตบอล"],
+  gym: ["gym", "ฟิตเนส", "ยิม", "เข้ายิม", "เวท", "เล่นเวท", "weight", "fitness", "workout"],
+  yoga: ["yoga", "โยคะ", "เล่นโยคะ", "พิลาทิส", "pilates"],
+  jumprope: ["jumprope", "jump rope", "skipping", "skip rope", "กระโดดเชือก", "เชือกกระโดด", "โดดเชือก"],
 };
 
 export function normalizeActivity(s) {
@@ -93,10 +102,9 @@ export function rawPoints(activity, amount, rules) {
       return (amount / rules.walkStepsForFull) * rules.dailyCap;
     case "bike":
       return (amount / rules.bikeKmForFull) * rules.dailyCap;
-    case "badminton": case "tennis": case "football": case "swim": case "basketball":
-      return amount < rules.sportMinMinutes ? 0 : (amount / rules.sportMinutesForFull) * rules.dailyCap;
     default:
-      return 0;
+      if (!act(activity).timed) return 0; // กิจกรรมที่นับเป็นนาทีใช้สูตรเดียวกันหมด
+      return amount < rules.sportMinMinutes ? 0 : (amount / rules.sportMinutesForFull) * rules.dailyCap;
   }
 }
 

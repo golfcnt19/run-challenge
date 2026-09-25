@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mtx6fz6u";
-import { computeScores, ACTIVITIES, act, rawPoints } from "./scoring.js?v=mtx6fz6u";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mtx6fz6u";
-import { ENTRY_URL } from "./config.js?v=mtx6fz6u";
+import { loadAll } from "./sheets.js?v=mugi3t1s";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugi3t1s";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugi3t1s";
+import { ENTRY_URL } from "./config.js?v=mugi3t1s";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -28,7 +28,7 @@ const AMOUNT = {
   bike:      { label: "ระยะทาง (กม.)", step: "0.1",  ph: "เช่น 15",    hint: (r) => `${fmtNum(r.bikeKmForFull)} กม. = ${r.dailyCap} คะแนน (คิดตามสัดส่วน)` },
 };
 const SPORT = { label: "เวลาที่เล่น (นาที)", step: "1", ph: "เช่น 60", hint: (r) => `${fmtNum(r.sportMinutesForFull)} นาที = ${r.dailyCap} คะแนน (คิดตามสัดส่วน) · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ` };
-for (const k of ["badminton", "tennis", "football", "swim", "basketball"]) AMOUNT[k] = SPORT;
+for (const k of TIMED) AMOUNT[k] = SPORT;
 
 async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);

@@ -30,6 +30,8 @@ const SHEET_TEAMS = "teams";
 const SHEET_CONFIG = "config";
 const SHEET_CARDS = "cards";
 const CARD_TYPES = ["carry", "x2", "block"];
+// กิจกรรมที่กรอกเป็นนาที (สูตรเดียวกันหมด: sport_minutes_for_full นาที = เต็มวัน) — ต้องตรงกับ ACTIVITIES ใน js/scoring.js
+const TIMED_ACTIVITIES = ["badminton", "tennis", "football", "swim", "basketball", "gym", "yoga", "jumprope"];
 
 // ── HTTP ─────────────────────────────────────────────────────────────
 function doGet() {
@@ -121,7 +123,7 @@ function addEntry_(b) {
 
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!isFinite(amount) || amount <= 0) return { ok: false, error: "จำนวนต้องมากกว่า 0" };
-  const timed = ["badminton", "tennis", "football", "swim", "basketball"].indexOf(activity) >= 0;
+  const timed = TIMED_ACTIVITIES.indexOf(activity) >= 0;
   if (activity === "walk" && amount > 100000) return { ok: false, error: "จำนวนก้าวมากผิดปกติ" };
   if (timed && amount > 600) return { ok: false, error: "เวลาเกิน 10 ชั่วโมง ผิดปกติ" };
   if (timed && amount < (parseFloat(config.sport_min_minutes) || 15)) return { ok: false, error: "กีฬาต้องอย่างน้อย " + (parseFloat(config.sport_min_minutes) || 15) + " นาทีถึงจะนับ" };
@@ -287,6 +289,9 @@ function normalizeActivity_(s) {
     football: ["football", "soccer", "ฟุตบอล", "บอล", "เตะบอล", "เตะฟุตบอล"],
     swim: ["swim", "swimming", "ว่ายน้ำ", "ว่าย"],
     basketball: ["basketball", "บาส", "บาสเกตบอล"],
+    gym: ["gym", "ฟิตเนส", "ยิม", "เข้ายิม", "เวท", "เล่นเวท", "weight", "fitness", "workout"],
+    yoga: ["yoga", "โยคะ", "เล่นโยคะ", "พิลาทิส", "pilates"],
+    jumprope: ["jumprope", "jump rope", "skipping", "skip rope", "กระโดดเชือก", "เชือกกระโดด", "โดดเชือก"],
   };
   for (const k in map) if (map[k].indexOf(v) >= 0) return k;
   return null;
