@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mugpecl9";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugpecl9";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugpecl9";
-import { USE_SAMPLE } from "./config.js?v=mugpecl9";
+import { loadAll } from "./sheets.js?v=mugpgqhx";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugpgqhx";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugpgqhx";
+import { USE_SAMPLE } from "./config.js?v=mugpgqhx";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -221,7 +221,6 @@ function renderBoard(teams, rules) {
       if (t.rankDelta < 0) tags.push(`<span class="tag down">▼ ${-t.rankDelta}</span>`);
       if (t.rank === 1 && t.pts > 0) tags.push(`<span class="tag lead">👑 ผู้นำ</span>`);
       else if (t.gap > 0) tags.push(`<span class="tag gap">ห่างผู้นำ ${fmtPts(t.gap)}</span>`);
-      if (t.scale !== 1) tags.push(`<span class="tag gap" title="คะแนนรวมจริง ${fmtPts(t.rawPts)} × ${rules.teamSize}/${t.members.length}">👥 ${t.members.length} คน ×${rules.teamSize}/${t.members.length}</span>`);
       for (const bk of t.badges || []) tags.push(`<span class="tag badge-fun" title="${BADGES[bk].title}">${BADGES[bk].label}</span>`);
       return `
       <li class="team-card ${t.pts > 0 && t.rank <= 3 ? `is-top top${t.rank}` : ""}" style="--team:${esc(t.color)}" data-team="${esc(t.id)}" tabindex="0" role="button" aria-label="ดูรายละเอียด${esc(t.name)}">
