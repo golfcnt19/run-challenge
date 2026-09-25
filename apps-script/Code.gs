@@ -135,6 +135,17 @@ function addEntry_(b) {
   if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
   ensureHeaders_(sh);
 
+  // 1 คน ส่งได้ 1 กิจกรรมต่อวัน (ทำใต้ lock ของ doPost อยู่แล้ว ส่งพร้อมกันไม่หลุด)
+  const lastRow = sh.getLastRow();
+  if (lastRow >= 2) {
+    const vals = sh.getRange(2, 1, lastRow - 1, 2).getValues();
+    for (let i = 0; i < vals.length; i++) {
+      const rDate = vals[i][0] instanceof Date ? Utilities.formatDate(vals[i][0], "Asia/Bangkok", "yyyy-MM-dd") : normalizeDate_(vals[i][0]);
+      if (rDate === date && String(vals[i][1]).trim().toLowerCase() === member.toLowerCase())
+        return { ok: false, error: member + " ส่งผลของวันที่ " + date + " ไปแล้ว (1 คน 1 กิจกรรม/วัน) — ถ้ากรอกผิด ให้ลบรายการเดิมก่อนแล้วกรอกใหม่", code: "DAY_TAKEN" };
+    }
+  }
+
   // คอลัมน์ date เป็นข้อความ เพื่อไม่ให้ชีตแปลงเป็นวันที่แล้ว export ผิดรูปแบบ
   const stamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"); // เวลาไทยเสมอ ไม่ขึ้นกับ timezone ของโปรเจกต์
   sh.appendRow([date, member, activity, amount, note, stamp, teamId + (isAdmin ? " (admin)" : "")]);

@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mugj8bev";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugj8bev";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugj8bev";
-import { USE_SAMPLE } from "./config.js?v=mugj8bev";
+import { loadAll } from "./sheets.js?v=mugjdhwb";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=mugjdhwb";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mugjdhwb";
+import { USE_SAMPLE } from "./config.js?v=mugjdhwb";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -353,7 +353,7 @@ function renderRules(r) {
     <li>เดิน <b>${fmtNum(r.walkStepsForFull)} ก้าว = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>🏸 แบด · 🎾 เทนนิส · ⚽ ฟุตบอล · 🏊 ว่ายน้ำ · 🏀 บาส · 🏋️ ฟิตเนส · 🧘 โยคะ · 🪢 กระโดดเชือก <b>${fmtNum(r.sportMinutesForFull)} นาที = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ)</li>
-    <li>รวมทุกกิจกรรมในวันเดียวได้ แต่ <b>ไม่เกิน ${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
+    <li><b>1 คน ส่งได้ 1 กิจกรรม/วัน</b> · ไม่เกิน <b>${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
     <li>คะแนนทีม = ผลรวมคะแนนของสมาชิกทุกคน · ทีมที่ไม่ใช่ ${fmtNum(r.teamSize)} คน <b>คิดตามสัดส่วน</b> (ผลรวม × ${fmtNum(r.teamSize)} ÷ จำนวนคน เช่น ทีม 6 คน × ${fmtNum(r.teamSize)}/6)</li>
     <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
   $("badges-rules").innerHTML = Object.values(BADGES).map((b) => `<li><b>${b.label}</b> — ${b.title}</li>`).join("");

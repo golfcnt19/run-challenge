@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mugj8bev";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugj8bev";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugj8bev";
-import { ENTRY_URL } from "./config.js?v=mugj8bev";
+import { loadAll } from "./sheets.js?v=mugjdhwb";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugjdhwb";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugjdhwb";
+import { ENTRY_URL } from "./config.js?v=mugjdhwb";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -67,6 +67,7 @@ function renderRunners() {
     ? `<option value="">— เลือกชื่อ —</option>` + t.members.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("")
     : `<option value="">— เลือกทีมก่อน —</option>`;
   sel.disabled = !t;
+  if (rules) renderDayHint(); // เปลี่ยนทีม → ชื่อรีเซ็ต ปุ่มบันทึกต้องกลับมากดได้
 }
 
 function entryHtml(e, idx) {
@@ -88,21 +89,19 @@ function renderRecent() {
   $("recent-list").innerHTML = mine.length ? mine.map(([e, i]) => entryHtml(e, i)).join("") : `<li class="empty">ยังไม่มีรายการ</li>`;
 }
 
-// คะแนน (หลังตัดเพดาน) ที่คนนั้นมีอยู่แล้วในวันนั้น
-function dayPoints(runner, date) {
-  const raw = entries.filter((x) => x.runner === runner && x.date === date).reduce((s, x) => s + rawPoints(x.activity, x.amount, rules), 0);
-  return Math.min(raw, rules.dailyCap);
-}
+// รายการที่คนนั้นส่งไปแล้วในวันนั้น (1 คน 1 กิจกรรม/วัน)
+const dayEntry = (runner, date) => entries.find((x) => x.runner === runner && x.date === date);
+const fmtAmount = (x) => { const a = act(x.activity); return `${a.icon} ${a.label} ${fmtNum(x.amount, a.timed || x.activity === "walk" ? 0 : 2)} ${a.unit}`; };
 function renderDayHint() {
   const el = $("day-hint");
   const runner = $("runner").value, date = $("date").value;
-  if (!rules || !runner || !date) return (el.hidden = true);
-  const p = dayPoints(runner, date);
+  const done = rules && runner && date ? dayEntry(runner, date) : null;
+  $("submit").disabled = Boolean(done);
+  if (!done) return (el.hidden = true);
+  const p = Math.min(rawPoints(done.activity, done.amount, rules), rules.dailyCap);
   el.hidden = false;
-  el.className = "hint day-hint" + (p >= rules.dailyCap ? " is-full" : "");
-  el.textContent = p >= rules.dailyCap
-    ? `${runner} วัน ${fmtDateShort(date)} นับเต็ม ${rules.dailyCap} แล้ว — กรอกเพิ่มได้ (คะแนนทีมไม่เพิ่ม แต่นับชิง ⭐ ดาวประจำวัน)`
-    : `${runner} วันนี้ได้แล้ว ${fmtNum(p, 2)} / ${rules.dailyCap} คะแนน`;
+  el.className = "hint day-hint is-full";
+  el.textContent = `${runner} ส่งของวัน ${fmtDateShort(date)} แล้ว: ${fmtAmount(done)} = ${fmtNum(p, 2)} คะแนน · 1 คน 1 กิจกรรม/วัน — ถ้ากรอกผิด ลบรายการเดิมด้านล่างก่อน`;
 }
 
 function setActivity(v) {
@@ -144,14 +143,8 @@ async function submit(e) {
   if (!payload.runner) return showError("เลือกชื่อ");
   if (!payload.date) return showError("เลือกวันที่");
   if (!(Number(payload.amount) > 0)) return showError("ใส่จำนวนให้ถูกต้อง");
-  // กันมือลั่น: รายการเหมือนเดิมเป๊ะ (คน+วัน+กิจกรรม+จำนวน) มีอยู่แล้ว → ถามยืนยันก่อน
-  const dup = entries.find((x) => x.runner === payload.runner && x.date === payload.date && x.activity === activity && Math.abs(Number(x.amount) - Number(payload.amount)) < 0.005);
-  if (dup) {
-    const a = act(activity);
-    if (!confirm(`${payload.runner} มีรายการ ${a.label} ${fmtNum(payload.amount, a.timed || activity === "walk" ? 0 : 2)} ${a.unit} ของวัน ${fmtDateShort(payload.date)} อยู่แล้ว
-
-กรอกซ้ำจริงใช่ไหม?`)) return;
-  }
+  const done = dayEntry(payload.runner, payload.date);
+  if (done) return showError(`${payload.runner} ส่งของวัน ${fmtDateShort(payload.date)} ไปแล้ว (${fmtAmount(done)}) — 1 คน 1 กิจกรรม/วัน`);
 
   const btn = $("submit");
   btn.disabled = true;
@@ -170,8 +163,9 @@ async function submit(e) {
   } catch (err) {
     showError(`ส่งไม่สำเร็จ: ${err.message} — ลองใหม่อีกครั้ง`);
   } finally {
-    btn.disabled = false;
     btn.textContent = "บันทึกผล";
+    btn.disabled = false;
+    renderDayHint(); // ส่งสำเร็จแล้ว → ปุ่มปิดเพราะคนนี้ส่งของวันนี้แล้ว
   }
 }
 

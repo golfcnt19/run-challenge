@@ -5,7 +5,7 @@
 //   เดิน               walk_steps_for_full ก้าว = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   กีฬาที่นับเวลา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส ฟิตเนส โยคะ กระโดดเชือก)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
-//   รวมทุกกิจกรรมในวันเดียวกันได้ แต่ไม่เกิน daily_cap ต่อคนต่อวัน
+//   1 คน ส่งได้ 1 กิจกรรมต่อวัน (ถ้าชีตมีหลายแถว นับแถวแรกเท่านั้น) · ไม่เกิน daily_cap ต่อคนต่อวัน
 //   คะแนนทีม = ผลรวมคะแนนสมาชิก × team_size ÷ จำนวนสมาชิก  (ทีมคนไม่เท่ากันเทียบเป็นทีม team_size คน — ทีม 5 คนไม่เปลี่ยน)
 //
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
@@ -14,7 +14,7 @@
 //   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugj8bev";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mugjdhwb";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -144,6 +144,7 @@ export function computeScores(data, today = todayIso()) {
 
   // --- อ่านรายการกิจกรรม ---
   const entries = [];
+  const taken = new Set(); // "runner|date" ที่นับไปแล้ว — 1 คน 1 กิจกรรม/วัน
   data.runs.forEach((r, i) => {
     const line = i + 2; // แถวในชีต (มี header)
     if (!r.date && !r.runner && !r.amount) return;
@@ -157,6 +158,9 @@ export function computeScores(data, today = todayIso()) {
     if (!activity) return warnings.push(`แถว ${line}: ไม่รู้จักกิจกรรม "${r.activity}"`);
     if (!Number.isFinite(amount) || amount <= 0) return warnings.push(`แถว ${line}: จำนวน "${r.amount}" ไม่ถูกต้อง`);
     if (date < rules.startDate || date > rules.endDate) return warnings.push(`แถว ${line}: วันที่ ${date} อยู่นอกช่วงกิจกรรม (ไม่นับ)`);
+    const dayKey = `${runnerName.get(key)}|${date}`;
+    if (taken.has(dayKey)) return warnings.push(`แถว ${line}: ${runnerName.get(key)} ส่งวันที่ ${date} ไปแล้ว — 1 คน 1 กิจกรรม/วัน นับเฉพาะแถวแรก`);
+    taken.add(dayKey);
     const hh = /(\d{1,2}):\d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
     entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null });
   });
