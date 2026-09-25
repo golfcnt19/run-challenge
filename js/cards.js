@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mugjqw4z";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugjqw4z";
-import { fmtDateLong } from "./format.js?v=mugjqw4z";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugjqw4z";
-import { ENTRY_URL } from "./config.js?v=mugjqw4z";
+import { loadAll } from "./sheets.js?v=mugpecl9";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugpecl9";
+import { fmtDateLong } from "./format.js?v=mugpecl9";
+import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugpecl9";
+import { ENTRY_URL } from "./config.js?v=mugpecl9";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -243,7 +243,7 @@ function renderPreview() { const el = $("cf-preview"); if (!el) return; const t 
 async function useCard() {
   showError("", "card-error");
   if (!ENTRY_URL) return showError("ยังไม่ได้ตั้งค่า ENTRY_URL", "card-error");
-  const pin = $("pin").value.trim();
+  const pin = $("pin").value.trim().toUpperCase();
   if (!pin) return showError("ใส่ PIN ของทีมในฟอร์มด้านบนก่อน", "card-error");
   const t = teams.find((x) => x.id === teamId);
   const payload = { action: "card", team_id: teamId, pin, card: pickedCard };

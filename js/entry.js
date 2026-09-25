@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mugjqw4z";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugjqw4z";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugjqw4z";
-import { ENTRY_URL } from "./config.js?v=mugjqw4z";
+import { loadAll } from "./sheets.js?v=mugpecl9";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugpecl9";
+import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugpecl9";
+import { ENTRY_URL } from "./config.js?v=mugpecl9";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -131,7 +131,7 @@ async function submit(e) {
   if (!ENTRY_URL) return showError("ยังไม่ได้ตั้งค่า ENTRY_URL");
   const payload = {
     team_id: teamId,
-    pin: $("pin").value.trim(),
+    pin: $("pin").value.trim().toUpperCase(),
     runner: $("runner").value,
     date: $("date").value,
     activity,
@@ -173,7 +173,7 @@ async function remove(idx, btn) {
   const en = entries[idx];
   if (!en) return;
   showError("", "recent-error");
-  const pin = $("pin").value.trim();
+  const pin = $("pin").value.trim().toUpperCase();
   if (!pin) return showError("ใส่ PIN ของทีมในฟอร์มด้านบนก่อนลบ", "recent-error");
   const a = act(en.activity);
   if (!confirm(`ลบรายการนี้?\n${fmtDateShort(en.date)} ${en.runner} ${a.label} ${fmtNum(en.amount, a.timed || en.activity === "walk" ? 0 : 2)} ${a.unit}`)) return;
