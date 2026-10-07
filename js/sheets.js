@@ -1,6 +1,6 @@
 // โหลดข้อมูลจาก Google Sheets (CSV) หรือจาก sample-data/ ตอนพัฒนา
-import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mugrqexr";
-import { DEV, todayIso } from "./format.js?v=mugrqexr";
+import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=muxh3i9o";
+import { DEV, todayIso } from "./format.js?v=muxh3i9o";
 
 // ข้อมูลจำลองทั้งเดือน (tools/simulate.js) — เฉพาะในเครื่อง: localhost:4174/?sim&today=2026-10-31
 const SIM = DEV && new URLSearchParams(location.search).has("sim");
@@ -81,4 +81,34 @@ export async function loadAll() {
     return { teams, runs: runs.filter((r) => r.date <= t), config: cfg, cards: cards.filter((r) => r.date <= t), loadedAt: new Date() };
   }
   return { teams, runs, config: cfg, cards, loadedAt: new Date() };
+}
+
+// ส่งข้อมูลไป Apps Script — บางครั้ง (เน็ตมือถือสะดุด / เบราว์เซอร์ในแอป) บันทึกเข้าชีตแล้ว
+// แต่คำตอบกลับมาไม่ใช่ JSON หรือหลุดกลางทาง → คืน { unknown: true } ให้หน้าเว็บไปเช็กในชีตเอง แทนการขึ้น "ส่งไม่สำเร็จ"
+export async function postApi(url, payload) {
+  let res, text;
+  try {
+    // ส่งเป็น text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight (Apps Script ไม่รองรับ OPTIONS)
+    res = await fetch(url, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
+    text = await res.text();
+  } catch (err) {
+    return { ok: false, unknown: true, error: err.message };
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { ok: false, unknown: true, error: `HTTP ${res.status} · ${text.slice(0, 40).replace(/\s+/g, " ")}` };
+  }
+}
+
+// โหลดชีตใหม่ซ้ำ ๆ จนกว่า check(data) จะคืนค่า (สูงสุดราว 8 วินาที) — ไม่เจอคืน null
+export async function confirmInSheet(check, tries = 5) {
+  for (let i = 0; i < tries; i++) {
+    await new Promise((r) => setTimeout(r, 1600));
+    try {
+      const hit = check(await loadAll());
+      if (hit) return hit;
+    } catch {}
+  }
+  return null;
 }

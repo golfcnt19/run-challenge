@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll } from "./sheets.js?v=mugrqexr";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=mugrqexr";
-import { fmtDateLong } from "./format.js?v=mugrqexr";
-import { fmtDateShort, fmtPts, todayIso } from "./format.js?v=mugrqexr";
-import { ENTRY_URL } from "./config.js?v=mugrqexr";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muxh3i9o";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints } from "./scoring.js?v=muxh3i9o";
+import { fmtDateLong } from "./format.js?v=muxh3i9o";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muxh3i9o";
+import { ENTRY_URL } from "./config.js?v=muxh3i9o";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -149,10 +149,7 @@ function showError(msg, id = "card-error") {
   $(id).textContent = msg || "";
 }
 
-async function callApi(payload) {
-  const res = await fetch(ENTRY_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
-  return res.json();
-}
+const callApi = (payload) => postApi(ENTRY_URL, payload);
 
 // ── การ์ดพิเศษ ──────────────────────────────────────────────────────
 const CARD_DESC = {
@@ -272,7 +269,13 @@ async function useCard() {
     roll = setInterval(() => { $("roll").textContent = t.members[Math.floor(Math.random() * t.members.length)]; }, 90);
   }
   try {
-    const out = await callApi(payload);
+    let out = await callApi(payload);
+    if (out.unknown) { // คำตอบอ่านไม่ออก → ดูในแท็บ cards ว่าทีมนี้ใช้การ์ดของวันนี้แล้วหรือยัง (วันละ 1 ใบ จึงเช็กได้ชัด)
+      const today = todayIso();
+      const hit = await confirmInSheet((d) => (d.cards || []).find((r) => normalizeDate(r.date) === today && String(r.team_id).trim().toUpperCase() === teamId));
+      if (hit) out = { ok: true, card: { date: today, team_id: teamId, card: String(hit.card).trim().toLowerCase(), runner: hit.runner, target_team: hit.target_team, target_runner: hit.target_runner } };
+      else out = { ok: false, error: `ไม่แน่ใจว่าใช้การ์ดสำเร็จไหม (${out.error}) — รอสักครู่แล้วรีเฟรชหน้านี้ ดูสถานะการ์ดก่อนกดใหม่` };
+    }
     if (roll) clearInterval(roll);
     if (!out.ok) { done.hidden = true; done.classList.remove("is-rolling"); return showError(out.error || "ใช้การ์ดไม่สำเร็จ", "card-error"); }
     const c = out.card;

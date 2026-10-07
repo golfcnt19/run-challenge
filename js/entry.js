@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll } from "./sheets.js?v=mugrqexr";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints } from "./scoring.js?v=mugrqexr";
-import { fmtDateShort, fmtNum, todayIso } from "./format.js?v=mugrqexr";
-import { ENTRY_URL } from "./config.js?v=mugrqexr";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muxh3i9o";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity } from "./scoring.js?v=muxh3i9o";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muxh3i9o";
+import { ENTRY_URL } from "./config.js?v=muxh3i9o";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -119,11 +119,10 @@ function showError(msg, id = "form-error") {
   $(id).textContent = msg || "";
 }
 
-async function callApi(payload) {
-  // ส่งเป็น text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight (Apps Script ไม่รองรับ OPTIONS)
-  const res = await fetch(ENTRY_URL, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
-  return res.json();
-}
+const callApi = (payload) => postApi(ENTRY_URL, payload);
+// แถวในชีตตรงกับรายการนี้ไหม (เทียบแบบเดียวกับ Code.gs)
+const sameRow = (r, e) => normalizeDate(r.date) === e.date && (r.runner || "").trim().toLowerCase() === e.runner.toLowerCase();
+const sameAmount = (r, e) => normalizeActivity(r.activity) === e.activity && Math.abs(Number(String(r.amount).replace(/,/g, "")) - Number(e.amount)) < 0.005;
 
 async function submit(e) {
   e.preventDefault();
@@ -150,7 +149,13 @@ async function submit(e) {
   btn.disabled = true;
   btn.textContent = "กำลังบันทึก…";
   try {
-    const out = await callApi(payload);
+    let out = await callApi(payload);
+    if (out.unknown) { // คำตอบอ่านไม่ออก → ไปดูในชีตว่าเข้าแล้วหรือยัง
+      btn.textContent = "กำลังตรวจสอบในชีต…";
+      const hit = await confirmInSheet((d) => d.runs.find((r) => sameRow(r, payload)));
+      if (!hit) return showError(`ไม่แน่ใจว่าบันทึกสำเร็จไหม (${out.error}) — รอสักครู่แล้วรีเฟรชหน้านี้ ดูรายการด้านล่างก่อนกรอกใหม่ (ถ้าเข้าแล้ว ระบบจะไม่ให้กรอกซ้ำอยู่แล้ว)`);
+      out = { ok: true, entry: { date: payload.date, runner: hit.runner, activity: normalizeActivity(hit.activity), amount: Number(String(hit.amount).replace(/,/g, "")), note: hit.note || "" } };
+    }
     if (!out.ok) return showError(out.error || "บันทึกไม่สำเร็จ");
     store.set(LS.team, payload.team_id);
     entries.unshift({ ...out.entry, teamId: payload.team_id });
@@ -180,7 +185,12 @@ async function remove(idx, btn) {
   btn.disabled = true;
   btn.textContent = "…";
   try {
-    const out = await callApi({ action: "delete", team_id: en.teamId, pin, runner: en.runner, date: en.date, activity: en.activity, amount: en.amount });
+    let out = await callApi({ action: "delete", team_id: en.teamId, pin, runner: en.runner, date: en.date, activity: en.activity, amount: en.amount });
+    if (out.unknown) { // คำตอบอ่านไม่ออก → ดูว่าแถวหายจากชีตแล้วหรือยัง
+      const gone = await confirmInSheet((d) => !d.runs.some((r) => sameRow(r, en) && sameAmount(r, en)));
+      if (!gone) return showError(`ไม่แน่ใจว่าลบสำเร็จไหม (${out.error}) — รอสักครู่แล้วรีเฟรชหน้านี้`, "recent-error");
+      out = { ok: true };
+    }
     if (!out.ok) return showError(out.error || "ลบไม่สำเร็จ", "recent-error");
     entries.splice(idx, 1);
     renderRecent();
