@@ -1,9 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz96hwm";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=muz96hwm";
-import { fmtDateLong } from "./format.js?v=muz96hwm";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muz96hwm";
-import { ENTRY_URL } from "./config.js?v=muz96hwm";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muzcdtia";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=muzcdtia";
+import { fmtDateLong } from "./format.js?v=muzcdtia";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muzcdtia";
+import { verifyTeamPin } from "./auth.js?v=muzcdtia";
+import { ENTRY_URL } from "./config.js?v=muzcdtia";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,7 +22,9 @@ let pickedCard = null;
 let teamId = store.get(LS.team) || "";
 let scored = null;
 let doneFor = null; // ทีมที่กล่อง "ใช้แล้ว" เป็นของ — สลับทีมแล้วซ่อน // ผล computeScores ล่าสุด (ใช้วาดประวัติ)
-let histScope = "week", histTeam = "mine"; // ค่าเริ่มต้น: วีคนี้ · เฉพาะทีมที่เลือก
+let histScope = "week"; // วีคนี้ / ทั้งหมด — ประวัติแสดงเฉพาะทีมที่ปลดล็อกเสมอ
+const histTeam = "mine";
+let unlockedTeam = ""; // ทีมที่ใส่ PIN ถูกแล้วในแท็บนี้ — ดูได้เฉพาะทีมนี้
 
 async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
@@ -63,10 +66,41 @@ function cardLine(c) {
   </li>`;
 }
 
+// ปุ่ม "ดูการ์ดของทีมฉัน"
+function renderUnlockUi() {
+  const need = Boolean(teamId) && teamId !== unlockedTeam;
+  $("unlock-team").hidden = !need;
+  $("unlock-hint").hidden = !need;
+  if (need) $("unlock-hint").textContent = "ใส่ PIN ของทีมแล้วกดปุ่มนี้ เพื่อดูการ์ดคงเหลือและประวัติของทีมตัวเอง";
+}
+
+async function unlockTeam() {
+  const pin = $("pin").value.trim().toUpperCase();
+  showError("", "card-error");
+  if (!teamId) return showError("เลือกทีมก่อน", "card-error");
+  if (!pin) return showError("ใส่ PIN ของทีม", "card-error");
+  const btn = $("unlock-team");
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = "กำลังตรวจ…";
+  try {
+    const t0 = teams.find((x) => x.id === teamId);
+    const out = await verifyTeamPin(ENTRY_URL, teamId, pin, t0 ? t0.members[0] : "");
+    if (!out.ok) return showError(out.error, "card-error");
+    unlockedTeam = teamId;
+    renderCards();
+    renderHistory();
+  } catch (err) {
+    showError(`ตรวจ PIN ไม่สำเร็จ: ${err.message}`, "card-error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
 function renderHistory() {
-  if (!scored) return;
+  if (!scored || !unlockedTeam) return;
   document.querySelectorAll("#hist-scope button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === histScope));
-  document.querySelectorAll("#hist-team button").forEach((b) => b.classList.toggle("is-active", b.dataset.v === histTeam));
   const thisWeek = weekKey(todayIso());
   let list = scored.cards.filter((c) => histScope === "all" || c.week === thisWeek);
   const mineActive = histTeam === "mine" && teamId;
@@ -161,9 +195,11 @@ const CARD_DESC = {
 };
 
 function renderCards() {
-  const t = teams.find((x) => x.id === teamId);
+  const t = teamId === unlockedTeam && teams.find((x) => x.id === teamId);
   $("cards-card").hidden = !t;
-  $("no-team").hidden = Boolean(t);
+  $("history-card").hidden = !t;
+  $("no-team").hidden = Boolean(teamId);
+  renderUnlockUi();
   if (doneFor !== teamId) { $("card-done").hidden = true; $("card-done").innerHTML = ""; }
   if (!t) return;
   const cs = cardState[t.id] || { used: {}, usedToday: false, left: CARD_TYPES };
@@ -288,6 +324,7 @@ async function useCard() {
     cardState = scored.cardState;
     pickedCard = null;
     renderCards();
+    unlockedTeam = teamId; // ใช้การ์ดผ่าน = PIN ถูก
     renderHistory(); // ซ่อนฟอร์มย่อย + วาดปุ่มตามโควตาใหม่
     done.classList.remove("is-rolling");
     done.innerHTML = c.card === "x2"
@@ -313,8 +350,8 @@ $("team-chips").addEventListener("click", (e) => {
   renderCards();
   renderHistory();
 });
+$("unlock-team").addEventListener("click", unlockTeam);
 $("hist-scope").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; histScope = b.dataset.v; renderHistory(); });
-$("hist-team").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; histTeam = b.dataset.v; renderHistory(); });
 $("card-grid").addEventListener("click", (e) => {
   const b = e.target.closest("[data-card]");
   if (!b || b.disabled) return;

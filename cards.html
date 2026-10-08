@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th" data-v="muz96hwm">
+<html lang="th" data-v="muzcdtia">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/site.css?v=muz96hwm">
+<link rel="stylesheet" href="css/site.css?v=muzcdtia">
 </head>
 <body>
 
@@ -45,6 +45,8 @@
         <input type="password" id="pin" autocomplete="off" autocapitalize="characters" placeholder="เช่น A1234 — ขอจากแอดมิน" required>
         <button type="button" class="btn-eye" id="pin-toggle" aria-label="แสดง PIN" aria-pressed="false">👁</button>
       </div>
+      <button type="button" class="btn-ghost" id="unlock-team" hidden>🔓 ดูการ์ดของทีมฉัน</button>
+      <small class="hint" id="unlock-hint" hidden></small>
     </div>
   </div>
 
@@ -64,15 +66,11 @@
 <section class="wrap">
   <div class="card" id="history-card">
     <div class="track-head">
-      <h2>📜 ประวัติการ์ด</h2>
+      <h2>📜 ประวัติการ์ดของทีมฉัน</h2>
       <div class="seg seg-mini" id="hist-scope" role="radiogroup">
         <button type="button" data-v="week" class="is-active">วีคนี้</button>
         <button type="button" data-v="all">ทั้งหมด</button>
       </div>
-    </div>
-    <div class="seg seg-mini" id="hist-team" role="radiogroup" style="margin:6px 0 10px">
-      <button type="button" data-v="mine" class="is-active">เฉพาะทีมที่เลือก</button>
-      <button type="button" data-v="all">ทุกทีม</button>
     </div>
     <div class="table-scroll"><table class="table card-summary" id="card-summary"></table></div>
     <div id="card-history"></div>
@@ -103,7 +101,7 @@
 
 <footer class="foot wrap"></footer>
 
-<script type="module" src="js/version-check.js?v=muz96hwm"></script>
-<script type="module" src="js/cards.js?v=muz96hwm"></script>
+<script type="module" src="js/version-check.js?v=muzcdtia"></script>
+<script type="module" src="js/cards.js?v=muzcdtia"></script>
 </body>
 </html>

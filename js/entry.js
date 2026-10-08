@@ -1,8 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz96hwm";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz96hwm";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz96hwm";
-import { ENTRY_URL } from "./config.js?v=muz96hwm";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muzcdtia";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muzcdtia";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muzcdtia";
+import { verifyTeamPin } from "./auth.js?v=muzcdtia";
+import { ENTRY_URL } from "./config.js?v=muzcdtia";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -154,12 +155,9 @@ async function unlockTeam() {
   const label = btn.textContent;
   btn.textContent = "กำลังตรวจ…";
   try {
-    // ส่ง runner ไปด้วย เพื่อให้ใช้ได้กับสคริปต์เวอร์ชันเก่าที่ยังไม่มี action "auth":
-    // เวอร์ชันเก่าจะวิ่งเข้า addEntry_ ซึ่งตรวจ PIN ก่อน แล้วค่อยตกที่ "วันที่ไม่ถูกต้อง" (ไม่เขียนอะไรลงชีต)
     const t0 = teams.find((x) => x.id === teamId);
-    const out = await postApi(ENTRY_URL, { action: "auth", team_id: teamId, pin, runner: t0 ? t0.members[0] : "" });
-    const okOld = !out.ok && out.code !== "PIN" && /วันที่/.test(out.error || "");
-    if (!out.ok && !okOld) return showError(out.error || "PIN ไม่ถูกต้อง");
+    const out = await verifyTeamPin(ENTRY_URL, teamId, pin, t0 ? t0.members[0] : "");
+    if (!out.ok) return showError(out.error);
     unlockedTeam = teamId;
     renderMyTeam();
     renderRecent();
