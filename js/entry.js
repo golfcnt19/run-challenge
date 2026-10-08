@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8cm3d";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz8cm3d";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz8cm3d";
-import { ENTRY_URL } from "./config.js?v=muz8cm3d";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8t7gz";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz8t7gz";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz8t7gz";
+import { ENTRY_URL } from "./config.js?v=muz8t7gz";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -50,8 +50,8 @@ async function init() {
     renderMyTeam();
     renderRecent();
     setActivity(activity);
-    // ลิงก์ไปตารางคะแนน: โชว์เฉพาะวันที่เปิดให้ทุกคน หรือเครื่องที่ปลดล็อกด้วยรหัสผู้ดูแลแล้ว
-    if (revealState(rules).public || store.get("rc-board") === "1") $("board-link").hidden = false;
+    // ลิงก์ไปตารางคะแนน: โชว์เฉพาะวันที่เปิดให้ทุกคนดู (แอดมินเข้า board.html ตรง ๆ แล้วใส่รหัส)
+    if (revealState(rules).public) $("board-link").hidden = false;
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`);
   }

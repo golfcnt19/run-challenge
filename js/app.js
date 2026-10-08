@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=muz8cm3d";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=muz8cm3d";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=muz8cm3d";
-import { USE_SAMPLE } from "./config.js?v=muz8cm3d";
+import { loadAll } from "./sheets.js?v=muz8t7gz";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=muz8t7gz";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=muz8t7gz";
+import { USE_SAMPLE } from "./config.js?v=muz8t7gz";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -15,15 +15,22 @@ const charts = {};
 // ── ล็อกหน้าตารางคะแนน ────────────────────────────────────────────
 // ตั้ง board_pin ในแท็บ config = ต้องใส่รหัสครั้งเดียว (จำในเครื่องนี้)
 // วันใน reveal_dates และหลัง end_date เปิดให้ทุกคนดูโดยไม่ต้องใส่รหัส
-const UNLOCKED = "rc-board";
-const unlocked = () => { try { return localStorage.getItem(UNLOCKED) === "1"; } catch { return false; } };
+// ไม่จำรหัส: ปลดล็อกอยู่แค่ในแท็บที่เปิดอยู่ ปิดแล้วต้องใส่ใหม่ทุกครั้ง
+let unlockedNow = false;
+const unlocked = () => unlockedNow;
 
 function lockScreen(rules) {
   const rv = revealState(rules);
   const when = rv.next
     ? `เปิดให้ทุกคนดู ${fmtDateLong(rv.next)}${rv.daysLeft > 0 ? ` (อีก ${rv.daysLeft} วัน)` : ""}`
     : `เปิดให้ทุกคนดูวันประกาศผล ${fmtDateLong(addDays(rules.endDate, 1))}`;
-  $("main").innerHTML = `
+  // ซ่อน <main> ไว้เฉย ๆ (ไม่ลบทิ้ง) เพื่อให้ event listener ที่ผูกไว้ตอนโหลดยังอยู่ครบหลังปลดล็อก
+  $("main").hidden = true;
+  const box = document.createElement("div");
+  box.className = "wrap";
+  box.id = "lock-wrap";
+  $("main").insertAdjacentElement("afterend", box);
+  box.innerHTML = `
     <div class="card lock-card">
       <h2>🔒 ตารางคะแนน</h2>
       <p class="hint">${esc(when)}</p>
@@ -40,8 +47,10 @@ function lockScreen(rules) {
   const tryPin = () => {
     const v = $("board-pin").value.trim().toUpperCase();
     if (v && v === rules.boardPin.toUpperCase()) {
-      try { localStorage.setItem(UNLOCKED, "1"); } catch {}
-      location.reload();
+      unlockedNow = true;
+      box.remove();
+      $("main").hidden = false;
+      refresh();
       return;
     }
     $("lock-error").hidden = false;

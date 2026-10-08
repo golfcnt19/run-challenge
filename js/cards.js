@@ -1,9 +1,9 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8cm3d";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=muz8cm3d";
-import { fmtDateLong } from "./format.js?v=muz8cm3d";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muz8cm3d";
-import { ENTRY_URL } from "./config.js?v=muz8cm3d";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8t7gz";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=muz8t7gz";
+import { fmtDateLong } from "./format.js?v=muz8t7gz";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muz8t7gz";
+import { ENTRY_URL } from "./config.js?v=muz8t7gz";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -37,8 +37,8 @@ async function init() {
     renderChips();
     renderCards();
     renderHistory();
-    // ลิงก์ไปตารางคะแนน: โชว์เฉพาะวันที่เปิดให้ทุกคน หรือเครื่องที่ปลดล็อกแล้ว
-    if (revealState(scored.rules).public || store.get("rc-board") === "1") $("board-link").hidden = false;
+    // ลิงก์ไปตารางคะแนน: โชว์เฉพาะวันที่เปิดให้ทุกคนดู (แอดมินเข้า board.html ตรง ๆ แล้วใส่รหัส)
+    if (revealState(scored.rules).public) $("board-link").hidden = false;
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`, "card-error");
     $("card-error").hidden = false;
