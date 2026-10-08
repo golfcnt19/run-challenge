@@ -3,7 +3,7 @@
 // สเกลทีม = เทียบเป็นทีม 5 คน (ทีม 5 คน = ผลรวมตรง ๆ · ทีม 6 คน ×5/6 · การ์ดนับเต็ม)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeScores, rawPoints, readRules, weekKey } from "../js/scoring.js";
+import { computeScores, rawPoints, readRules, weekKey, revealState } from "../js/scoring.js";
 
 // ── ตัวช่วย ──────────────────────────────────────────────────────
 const names = (p, n) => Array.from({ length: n }, (_, i) => `${p}${i + 1}`);
@@ -202,4 +202,27 @@ test("วีคเริ่มวันจันทร์", () => {
 test("สรุปวัน: คะแนนรวม = ผลรวมจริงของทุกคน", () => {
   const res = score({ runs: [...runAll(D, A, 5), ...runAll(D, G, 5)] });
   eq(res.dayStats[res.days.indexOf(D)].total, 55);
+});
+
+// ── ล็อกตารางคะแนน (board_pin + reveal_dates) ──────────────────
+test("ไม่ตั้ง board_pin = ใครก็ดูตารางคะแนนได้", () => {
+  const r = readRules(CONFIG);
+  assert.equal(revealState(r, "2026-10-15").public, true);
+});
+
+test("ตั้ง board_pin แล้ว เปิดเฉพาะวันใน reveal_dates / หลังจบ", () => {
+  const r = readRules({ ...CONFIG, board_pin: "X1", reveal_dates: "2026-10-17, 2026-10-24" });
+  assert.equal(revealState(r, "2026-10-15").public, false, "วันธรรมดา = ล็อก");
+  assert.equal(revealState(r, "2026-10-17").public, true, "วันเปิด");
+  assert.equal(revealState(r, "2026-10-24").public, true, "วันเปิดถัดไป");
+  assert.equal(revealState(r, "2026-10-31").public, true, "หลัง end_date เปิดถาวร");
+  const v = revealState(r, "2026-10-15");
+  assert.equal(v.next, "2026-10-17");
+  assert.equal(v.daysLeft, 2);
+});
+
+test("ตั้ง board_pin แต่ไม่ใส่ reveal_dates = ล็อกจนจบกิจกรรม", () => {
+  const r = readRules({ ...CONFIG, board_pin: "X1" });
+  assert.equal(revealState(r, "2026-10-17").public, false);
+  assert.equal(revealState(r, "2026-10-31").public, true);
 });

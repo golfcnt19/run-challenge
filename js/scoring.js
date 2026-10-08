@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=muxh3i9o";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=muz8cm3d";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -95,6 +95,25 @@ export function readRules(config) {
     sportMinutesForFull: num("sport_minutes_for_full", 60),
     sportMinMinutes: num("sport_min_minutes", 15),
     teamSize: num("team_size", 5), // ขนาดทีมมาตรฐาน — ทีมที่คนไม่เท่านี้คิดสัดส่วน
+    // โหมดลุ้น: เปิดตารางคะแนนเฉพาะวันที่ระบุ (เว้นว่าง = เปิดตลอดเวลาแบบเดิม)
+    revealDates: String(config.reveal_dates || "").split(",").map((x) => x.trim()).filter(Boolean).sort(),
+    boardPin: String(config.board_pin || "").trim(), // รหัสเปิดดูตารางคะแนน (เว้นว่าง = ใครก็ดูได้)
+  };
+}
+
+// ตารางคะแนน (board.html) เปิดให้ทุกคนดูวันนี้ไหม
+//   ไม่ตั้ง board_pin         → ใครก็ดูได้ (เหมือนเดิม)
+//   ตั้ง board_pin            → ต้องใส่รหัส ยกเว้นวันใน reveal_dates และหลังจบกิจกรรม
+export function revealState(rules, today = todayIso()) {
+  const dates = rules.revealDates;
+  const afterEnd = today > rules.endDate;
+  const isPublic = !rules.boardPin || afterEnd || dates.includes(today);
+  const next = dates.find((d) => d > today) || "";
+  return {
+    public: isPublic,
+    afterEnd,
+    next,
+    daysLeft: next ? Math.round((parseDate(next) - parseDate(today)) / 86400000) : 0,
   };
 }
 

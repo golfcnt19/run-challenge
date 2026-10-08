@@ -1,111 +1,11 @@
 <!DOCTYPE html>
-<html lang="th" data-v="muxh3i9o">
+<html lang="th">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Cache-Control" content="no-cache">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>กรอกผล — Run Challenge</title>
-<meta name="theme-color" content="#4f46e5">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Run Challenge">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/site.css?v=muxh3i9o">
+<!-- ลิงก์เก่าที่เคยส่งในกลุ่ม: หน้ากรอกย้ายมาเป็นหน้าหลักแล้ว -->
+<meta http-equiv="refresh" content="0; url=./">
+<link rel="canonical" href="./">
 </head>
-<body>
-
-<header class="hero hero-compact">
-  <div class="wrap">
-    <div class="hero-links"><a class="back" href="./">‹ ตารางคะแนน</a><a class="back" href="cards.html">🃏 การ์ดพิเศษ ›</a></div>
-    <h1>✏️ กรอกผล</h1>
-    <p class="hero-range" id="range">—</p>
-  </div>
-</header>
-
-<main class="wrap">
-  <div class="alert" id="setup" hidden>
-    ยังไม่ได้ตั้งค่าตัวรับข้อมูล — วาง URL เว็บแอปของ Apps Script ใน <code>js/config.js</code> ที่ <code>ENTRY_URL</code>
-    (วิธีอยู่ใน <code>apps-script/Code.gs</code>)
-  </div>
-
-  <div class="card form" id="who-card">
-    <div class="field">
-      <span>ทีม</span>
-      <div class="chips" id="team-chips"></div>
-    </div>
-
-    <div class="field">
-      <label for="pin">PIN ของทีม</label>
-      <div class="pin-wrap">
-        <input type="password" id="pin" autocomplete="off" autocapitalize="characters" placeholder="เช่น A1234 — ขอจากแอดมิน" required>
-        <button type="button" class="btn-eye" id="pin-toggle" aria-label="แสดง PIN" aria-pressed="false">👁</button>
-      </div>
-    </div>
-  </div>
-
-  <p class="empty" id="no-team">เลือกทีมด้านบนก่อน</p>
-
-  <form class="card form" id="form" novalidate>
-    <label class="field">
-      <span>ชื่อ</span>
-      <select id="runner" required><option value="">— เลือกทีมก่อน —</option></select>
-      <small class="hint day-hint" id="day-hint" hidden></small>
-    </label>
-
-    <label class="field">
-      <span>วันที่</span>
-      <input type="date" id="date" required>
-    </label>
-
-    <div class="field">
-      <span>กิจกรรม</span>
-      <div class="seg" id="activity" role="radiogroup">
-        <button type="button" data-v="run" class="is-active"><span class="ic">🏃</span>วิ่งสวน</button>
-        <button type="button" data-v="treadmill"><span class="ic">🏃‍♂️</span>วิ่งลู่</button>
-        <button type="button" data-v="walk"><span class="ic">🚶</span>เดิน</button>
-        <button type="button" data-v="bike"><span class="ic">🚴</span>ปั่น</button>
-        <button type="button" data-v="badminton"><span class="ic">🏸</span>แบด</button>
-        <button type="button" data-v="tennis"><span class="ic">🎾</span>เทนนิส</button>
-        <button type="button" data-v="football"><span class="ic">⚽</span>ฟุตบอล</button>
-        <button type="button" data-v="swim"><span class="ic">🏊</span>ว่ายน้ำ</button>
-        <button type="button" data-v="basketball"><span class="ic">🏀</span>บาส</button>
-        <button type="button" data-v="gym"><span class="ic">🏋️</span>ฟิตเนส</button>
-        <button type="button" data-v="yoga"><span class="ic">🧘</span>โยคะ</button>
-        <button type="button" data-v="jumprope"><span class="ic">🪢</span>กระโดดเชือก</button>
-      </div>
-    </div>
-
-    <label class="field">
-      <span id="amount-label">ระยะทาง (กม.)</span>
-      <input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="เช่น 5.2" required>
-      <small class="hint" id="amount-hint"></small>
-    </label>
-
-    <label class="field">
-      <span>หมายเหตุ <em>(ไม่บังคับ)</em></span>
-      <input type="text" id="note" maxlength="200" placeholder="เช่น สวนรถไฟ">
-    </label>
-
-    <div class="alert" id="form-error" hidden></div>
-    <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
-  </form>
-
-  <div class="card" id="recent-card" hidden>
-    <h2>รายการล่าสุดของทีม <span id="recent-team"></span> <small class="dim">7 วันหลังสุด</small></h2>
-    <p class="hint">กรอกผิด กด 🗑 เพื่อลบได้เลย (ต้องมี PIN ของทีม)</p>
-    <ul class="log" id="recent-list"></ul>
-    <div class="alert" id="recent-error" hidden></div>
-  </div>
-</main>
-
-<footer class="foot wrap">กติกา: 1 คน 1 กิจกรรม/วัน · ไม่เกิน 5 คะแนน/คน/วัน</footer>
-
-<script type="module" src="js/version-check.js?v=muxh3i9o"></script>
-<script type="module" src="js/entry.js?v=muxh3i9o"></script>
-</body>
+<body><p style="font-family:system-ui;padding:20px">หน้ากรอกผลย้ายมาเป็นหน้าหลักแล้ว — <a href="./">เปิดหน้าหลัก</a></p></body>
 </html>

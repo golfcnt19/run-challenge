@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muxh3i9o";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity } from "./scoring.js?v=muxh3i9o";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muxh3i9o";
-import { ENTRY_URL } from "./config.js?v=muxh3i9o";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8cm3d";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz8cm3d";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz8cm3d";
+import { ENTRY_URL } from "./config.js?v=muz8cm3d";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -15,6 +15,7 @@ const store = {
 };
 
 let teams = [];
+let scored = null; // ผลคำนวณเต็มจาก computeScores (ใช้การ์ดสรุปทีมของฉัน)
 let rules = null;
 let entries = []; // ทุกรายการจากชีต (เรียงใหม่→เก่า) — อัปเดตในเครื่องเมื่อเพิ่ม/ลบ
 let sinceDate = ""; // วันแรกของช่วง 7 วันหลังสุด
@@ -36,7 +37,7 @@ async function init() {
   $("date").max = todayIso();
   try {
     const data = await loadAll();
-    const scored = computeScores(data);
+    scored = computeScores(data);
     rules = scored.rules;
     teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
     entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
@@ -46,8 +47,11 @@ async function init() {
     if (!teams.some((t) => t.id === teamId)) teamId = "";
     renderChips();
     renderRunners();
+    renderMyTeam();
     renderRecent();
     setActivity(activity);
+    // ลิงก์ไปตารางคะแนน: โชว์เฉพาะวันที่เปิดให้ทุกคน หรือเครื่องที่ปลดล็อกด้วยรหัสผู้ดูแลแล้ว
+    if (revealState(rules).public || store.get("rc-board") === "1") $("board-link").hidden = false;
   } catch (e) {
     showError(`โหลดรายชื่อทีมไม่ได้: ${e.message}`);
   }
@@ -77,6 +81,32 @@ function entryHtml(e, idx) {
     <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
     <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
   </li>`;
+}
+
+// สรุปทีมของฉัน — เห็นเฉพาะทีมตัวเอง ไม่มีอันดับ/ไม่เห็นทีมอื่น
+function renderMyTeam() {
+  const t = scored && scored.teams.find((x) => x.id === teamId);
+  $("myteam-card").hidden = !t;
+  if (!t) return;
+  const today = todayIso();
+  const sent = t.members.filter((m) => entries.some((x) => x.runner === m && x.date === today));
+  $("myteam-name").innerHTML = `<span class="dot-badge mini" style="--team:${esc(t.color)}">${esc(t.id)}</span> ${esc(t.name)}`;
+  $("myteam-sub").textContent = `วันนี้ ${fmtDateShort(today)}`;
+  $("myteam-stats").innerHTML = `
+    <div class="stat"><b>${fmtNum(t.pts, 2)}</b><small>คะแนนทีมเรา</small></div>
+    <div class="stat"><b>${sent.length}<span class="dim">/${t.members.length}</span></b><small>ส่งผลวันนี้</small></div>
+    <div class="stat"><b>${t.entries}</b><small>รายการทั้งหมด</small></div>`;
+  $("myteam-today").innerHTML = t.members
+    .map((m) => {
+      const r = t.runners.find((x) => x.name === m);
+      const en = entries.find((x) => x.runner === m && x.date === today);
+      const a = en && act(en.activity);
+      const what = en
+        ? `<span class="what">${a.icon} ${fmtNum(en.amount, a.timed || en.activity === "walk" ? 0 : 2)} ${a.unit}</span><span class="pt">${fmtNum(r ? r.days[today] || 0 : 0, 2)}</span>`
+        : `<span class="what dim">ยังไม่ส่ง</span><span class="pt">—</span>`;
+      return `<li class="${en ? "is-done" : ""}"><span class="tick">${en ? "✅" : "⬜"}</span><span class="nm">${esc(m)}</span>${what}</li>`;
+    })
+    .join("");
 }
 
 function renderRecent() {
@@ -160,6 +190,7 @@ async function submit(e) {
     store.set(LS.team, payload.team_id);
     entries.unshift({ ...out.entry, teamId: payload.team_id });
     renderRecent();
+    renderMyTeam();
     renderDayHint();
     $("amount").value = "";
     $("note").value = "";
@@ -194,6 +225,7 @@ async function remove(idx, btn) {
     if (!out.ok) return showError(out.error || "ลบไม่สำเร็จ", "recent-error");
     entries.splice(idx, 1);
     renderRecent();
+    renderMyTeam();
     renderDayHint();
   } catch (err) {
     showError(`ลบไม่สำเร็จ: ${err.message}`, "recent-error");
@@ -209,6 +241,7 @@ $("team-chips").addEventListener("click", (e) => {
   teamId = c.dataset.team;
   renderChips();
   renderRunners();
+  renderMyTeam();
   renderRecent();
 });
 $("activity").addEventListener("click", (e) => {

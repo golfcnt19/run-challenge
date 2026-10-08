@@ -551,3 +551,20 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .podium-stats .stat b { font-size: 1.1rem; }
 
 .nowrap { white-space: nowrap; }
+
+/* ── สรุปทีมของฉัน (หน้ากรอก) ─────────────────────── */
+.today-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.today-list li { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+.today-list li:last-child { border-bottom: 0; }
+.today-list .tick { text-align: center; }
+.today-list .nm { font-weight: 600; }
+.today-list .what { color: var(--text); font-size: 0.82rem; white-space: nowrap; }
+.today-list .what.dim { color: var(--muted); }
+.today-list .pt { min-width: 36px; text-align: right; font-weight: 700; }
+.today-list li:not(.is-done) .nm { color: var(--muted); font-weight: 500; }
+
+/* ── ล็อกตารางคะแนน ───────────────────────────────── */
+.lock-card { max-width: 420px; margin: 24px auto; text-align: left; }
+.lock-card h2 { margin-bottom: 6px; }
+.lock-card .btn-primary { width: 100%; margin-top: 12px; }
+.lock-card .field { margin-top: 14px; }

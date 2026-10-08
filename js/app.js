@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=muxh3i9o";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey } from "./scoring.js?v=muxh3i9o";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=muxh3i9o";
-import { USE_SAMPLE } from "./config.js?v=muxh3i9o";
+import { loadAll } from "./sheets.js?v=muz8cm3d";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=muz8cm3d";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=muz8cm3d";
+import { USE_SAMPLE } from "./config.js?v=muz8cm3d";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -11,6 +11,49 @@ let state = null; // ผลจาก computeScores
 let selectedTeam = null;
 let dailyShowAll = false; // ตารางรายวัน: false = 7 วันล่าสุด
 const charts = {};
+
+// ── ล็อกหน้าตารางคะแนน ────────────────────────────────────────────
+// ตั้ง board_pin ในแท็บ config = ต้องใส่รหัสครั้งเดียว (จำในเครื่องนี้)
+// วันใน reveal_dates และหลัง end_date เปิดให้ทุกคนดูโดยไม่ต้องใส่รหัส
+const UNLOCKED = "rc-board";
+const unlocked = () => { try { return localStorage.getItem(UNLOCKED) === "1"; } catch { return false; } };
+
+function lockScreen(rules) {
+  const rv = revealState(rules);
+  const when = rv.next
+    ? `เปิดให้ทุกคนดู ${fmtDateLong(rv.next)}${rv.daysLeft > 0 ? ` (อีก ${rv.daysLeft} วัน)` : ""}`
+    : `เปิดให้ทุกคนดูวันประกาศผล ${fmtDateLong(addDays(rules.endDate, 1))}`;
+  $("main").innerHTML = `
+    <div class="card lock-card">
+      <h2>🔒 ตารางคะแนน</h2>
+      <p class="hint">${esc(when)}</p>
+      <label class="field" for="board-pin"><span>รหัสผู้ดูแล</span>
+        <div class="pin-wrap">
+          <input type="password" id="board-pin" autocomplete="off" autocapitalize="characters" placeholder="ใส่รหัสเพื่อดูก่อน">
+          <button type="button" class="btn-eye" id="board-pin-eye" aria-label="แสดงรหัส">👁</button>
+        </div>
+      </label>
+      <div class="alert" id="lock-error" hidden></div>
+      <button type="button" class="btn-primary" id="board-unlock">เปิดดู</button>
+      <p class="hint" style="margin-top:12px">หัวหน้าทีมใช้ <a href="./">✏️ หน้ากรอกผล</a> และ <a href="cards.html">🃏 การ์ด</a> ได้ตามปกติ</p>
+    </div>`;
+  const tryPin = () => {
+    const v = $("board-pin").value.trim().toUpperCase();
+    if (v && v === rules.boardPin.toUpperCase()) {
+      try { localStorage.setItem(UNLOCKED, "1"); } catch {}
+      location.reload();
+      return;
+    }
+    $("lock-error").hidden = false;
+    $("lock-error").textContent = "รหัสไม่ถูกต้อง";
+  };
+  $("board-unlock").addEventListener("click", tryPin);
+  $("board-pin").addEventListener("keydown", (e) => { if (e.key === "Enter") tryPin(); });
+  $("board-pin-eye").addEventListener("click", () => {
+    const i = $("board-pin");
+    i.type = i.type === "password" ? "text" : "password";
+  });
+}
 
 // ── โหลด ───────────────────────────────────────────────────────────
 async function refresh() {
@@ -21,6 +64,7 @@ async function refresh() {
   try {
     const data = await loadAll();
     state = computeScores(data);
+    if (!revealState(state.rules).public && !unlocked()) return lockScreen(state.rules);
     render(data.loadedAt);
   } catch (e) {
     $("error").hidden = false;

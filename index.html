@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="th" data-v="muxh3i9o">
+<html lang="th" data-v="muz8cm3d">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Run Challenge — ตารางคะแนน</title>
-<meta name="description" content="ตารางคะแนนกิจกรรมวิ่งสะสมระยะ 7 ทีม">
+<title>กรอกผล — Run Challenge</title>
 <meta name="theme-color" content="#4f46e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -16,109 +15,103 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/site.css?v=muxh3i9o">
+<link rel="stylesheet" href="css/site.css?v=muz8cm3d">
 </head>
 <body>
 
-<header class="hero">
+<header class="hero hero-compact">
   <div class="wrap">
-    <p class="hero-kicker">กิจกรรมสะสมคะแนน</p>
-    <h1 id="title">Run Challenge</h1>
+    <div class="hero-links"><a class="back" href="cards.html">🃏 การ์ดพิเศษ ›</a><a class="back" id="board-link" href="board.html" hidden>🏆 ตารางคะแนน ›</a></div>
+    <h1>✏️ กรอกผล</h1>
     <p class="hero-range" id="range">—</p>
-    <div class="progress">
-      <div class="progress-bar"><span id="progress-fill" style="width:0%"></span></div>
-      <div class="progress-meta"><span id="progress-text">—</span><span id="progress-days">—</span></div>
-    </div>
-    <p class="updated"><span id="updated">กำลังโหลด…</span></p>
-    <div class="hero-actions">
-      <button class="btn-refresh" id="refresh" type="button" aria-label="โหลดข้อมูลใหม่">↻ รีเฟรช</button>
-      <a class="btn-entry" href="entry.html">✏️ กรอกผล</a>
-      <a class="btn-entry" href="cards.html">🃏 การ์ด</a>
-    </div>
   </div>
 </header>
 
-<main class="wrap" id="main">
-  <div class="alert" id="error" hidden></div>
-  <details class="warn" id="warnings" hidden>
-    <summary><span id="warn-count"></span> รายการที่ระบบไม่นับ — กดดู</summary>
-    <ul id="warn-list"></ul>
-  </details>
+<main class="wrap">
+  <div class="alert" id="setup" hidden>
+    ยังไม่ได้ตั้งค่าตัวรับข้อมูล — วาง URL เว็บแอปของ Apps Script ใน <code>js/config.js</code> ที่ <code>ENTRY_URL</code>
+    (วิธีอยู่ใน <code>apps-script/Code.gs</code>)
+  </div>
 
-  <nav class="tabs" role="tablist" aria-label="หน้า">
-    <button class="tab is-active" role="tab" data-tab="board" aria-selected="true">🏆 อันดับทีม</button>
-    <button class="tab" role="tab" data-tab="daily" aria-selected="false">📈 รายวัน</button>
-    <button class="tab" role="tab" data-tab="team" aria-selected="false">👥 รายทีม</button>
-  </nav>
+  <div class="card form" id="who-card">
+    <div class="field">
+      <span>ทีม</span>
+      <div class="chips" id="team-chips"></div>
+    </div>
 
-  <!-- อันดับทีม -->
-  <section class="panel" id="panel-board" role="tabpanel">
-    <div class="podium-card card" id="podium" hidden></div>
-    <div class="celebrate" id="celebrate" hidden></div>
-    <ol class="board" id="board"></ol>
-    <div class="card track-card">
-      <div class="track-head">
-        <h2>🏁 สนามแข่ง</h2>
-        <div class="track-tools">
-          <button type="button" class="btn-replay" id="track-replay" title="ย้อนดูการแข่งตั้งแต่วันแรก">▶ ย้อนดู</button>
-          <div class="seg seg-mini" id="track-mode" role="radiogroup">
-            <button type="button" data-v="zoom" class="is-active">🔍 ซูม</button>
-            <button type="button" data-v="full">🏁 เต็มสนาม</button>
-          </div>
-        </div>
+    <div class="field">
+      <label for="pin">PIN ของทีม</label>
+      <div class="pin-wrap">
+        <input type="password" id="pin" autocomplete="off" autocapitalize="characters" placeholder="เช่น A1234 — ขอจากแอดมิน" required>
+        <button type="button" class="btn-eye" id="pin-toggle" aria-label="แสดง PIN" aria-pressed="false">👁</button>
       </div>
-      <small class="track-note" id="track-note"></small>
-      <div class="track" id="track"></div>
     </div>
-    <div class="card" id="week-cards-card">
-      <div class="track-head"><h2>🃏 การ์ดวีคนี้</h2><small id="week-cards-range"></small></div>
-      <div class="table-scroll"><table class="table week-cards" id="week-cards"></table></div>
-    </div>
-    <div class="card" id="top-runners-card">
-      <h2>⭐ นักวิ่งเด่น</h2>
-      <ol class="top-runners" id="top-runners"></ol>
-    </div>
-    <details class="card rules-card" open>
-      <summary><h2>📋 กติกา</h2></summary>
-      <ul class="rules" id="rules"></ul>
-      <div class="examples"><div class="ex" id="team-size-rules"></div></div>
-      <p class="rules-lead" style="margin-top:10px">🏷️ <b>ป้ายพิเศษ</b> — ให้ทีมที่เข้าเงื่อนไขมากที่สุด (เสมอกันได้ทุกทีม) ทีมหนึ่งได้หลายป้ายได้ · คำนวณใหม่ทุกวัน</p>
-      <ul class="rules" id="badges-rules"></ul>
-    </details>
-  </section>
+  </div>
 
-  <!-- รายวัน -->
-  <section class="panel" id="panel-daily" role="tabpanel" hidden>
-    <div class="card" id="day-summary-card">
-      <div class="track-head"><h2 id="day-summary-title">สรุปวันล่าสุด</h2><small id="day-summary-date"></small></div>
-      <div class="stat-row day-summary" id="day-summary"></div>
-      <div class="day-cards" id="day-cards" hidden></div>
-    </div>
-    <div class="card">
-      <h2>ตารางรายวัน</h2>
-      <div class="table-scroll"><table class="table" id="daily-table"></table></div>
-      <button type="button" class="btn-ghost" id="daily-toggle" hidden>ดูทั้งหมด</button>
-    </div>
-    <div class="card chart-card">
-      <div class="track-head"><h2>📊 คะแนนแต่ละวัน</h2><small>7 วันล่าสุด</small></div>
-      <div class="chart-box"><canvas id="chart-daily"></canvas></div>
-    </div>
-  </section>
+  <p class="empty" id="no-team">เลือกทีมด้านบนก่อน</p>
 
-  <!-- รายทีม -->
-  <section class="panel" id="panel-team" role="tabpanel" hidden>
-    <div class="chips" id="team-chips" role="tablist" aria-label="เลือกทีม"></div>
-    <div id="team-detail"></div>
-  </section>
+  <div class="card" id="myteam-card" hidden>
+    <div class="track-head"><h2>ทีมของฉัน <span id="myteam-name"></span></h2><small id="myteam-sub"></small></div>
+    <div class="stat-row" id="myteam-stats"></div>
+    <ul class="today-list" id="myteam-today"></ul>
+  </div>
+
+  <form class="card form" id="form" novalidate>
+    <label class="field">
+      <span>ชื่อ</span>
+      <select id="runner" required><option value="">— เลือกทีมก่อน —</option></select>
+      <small class="hint day-hint" id="day-hint" hidden></small>
+    </label>
+
+    <label class="field">
+      <span>วันที่</span>
+      <input type="date" id="date" required>
+    </label>
+
+    <div class="field">
+      <span>กิจกรรม</span>
+      <div class="seg" id="activity" role="radiogroup">
+        <button type="button" data-v="run" class="is-active"><span class="ic">🏃</span>วิ่งสวน</button>
+        <button type="button" data-v="treadmill"><span class="ic">🏃‍♂️</span>วิ่งลู่</button>
+        <button type="button" data-v="walk"><span class="ic">🚶</span>เดิน</button>
+        <button type="button" data-v="bike"><span class="ic">🚴</span>ปั่น</button>
+        <button type="button" data-v="badminton"><span class="ic">🏸</span>แบด</button>
+        <button type="button" data-v="tennis"><span class="ic">🎾</span>เทนนิส</button>
+        <button type="button" data-v="football"><span class="ic">⚽</span>ฟุตบอล</button>
+        <button type="button" data-v="swim"><span class="ic">🏊</span>ว่ายน้ำ</button>
+        <button type="button" data-v="basketball"><span class="ic">🏀</span>บาส</button>
+        <button type="button" data-v="gym"><span class="ic">🏋️</span>ฟิตเนส</button>
+        <button type="button" data-v="yoga"><span class="ic">🧘</span>โยคะ</button>
+        <button type="button" data-v="jumprope"><span class="ic">🪢</span>กระโดดเชือก</button>
+      </div>
+    </div>
+
+    <label class="field">
+      <span id="amount-label">ระยะทาง (กม.)</span>
+      <input type="number" id="amount" inputmode="decimal" step="0.01" min="0" placeholder="เช่น 5.2" required>
+      <small class="hint" id="amount-hint"></small>
+    </label>
+
+    <label class="field">
+      <span>หมายเหตุ <em>(ไม่บังคับ)</em></span>
+      <input type="text" id="note" maxlength="200" placeholder="เช่น สวนรถไฟ">
+    </label>
+
+    <div class="alert" id="form-error" hidden></div>
+    <button class="btn-primary" id="submit" type="submit">บันทึกผล</button>
+  </form>
+
+  <div class="card" id="recent-card" hidden>
+    <h2>รายการล่าสุดของทีม <span id="recent-team"></span> <small class="dim">7 วันหลังสุด</small></h2>
+    <p class="hint">กรอกผิด กด 🗑 เพื่อลบได้เลย (ต้องมี PIN ของทีม)</p>
+    <ul class="log" id="recent-list"></ul>
+    <div class="alert" id="recent-error" hidden></div>
+  </div>
 </main>
 
-<footer class="foot wrap">
-  <span id="foot-note"></span>
-  <a class="foot-link" id="podium-link" href="?podium=1" hidden>🏁 ดูตัวอย่างโพเดียม</a>
-</footer>
+<footer class="foot wrap">กติกา: 1 คน 1 กิจกรรม/วัน · ไม่เกิน 5 คะแนน/คน/วัน</footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script type="module" src="js/version-check.js?v=muxh3i9o"></script>
-<script type="module" src="js/app.js?v=muxh3i9o"></script>
+<script type="module" src="js/version-check.js?v=muz8cm3d"></script>
+<script type="module" src="js/entry.js?v=muz8cm3d"></script>
 </body>
 </html>

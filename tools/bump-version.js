@@ -14,7 +14,7 @@ const rw = (f, fn) => {
 };
 for (const f of fs.readdirSync(path.join(root, "js")).filter((x) => x.endsWith(".js")))
   rw("js/" + f, (s) => s.replace(/from "\.\/([\w-]+)\.js(\?v=[^"]*)?"/g, (m, n) => `from "./${n}.js?${V}"`));
-for (const f of ["index.html", "entry.html", "cards.html"])
+for (const f of ["index.html", "board.html", "cards.html"])
   rw(f, (s) =>
     s
       .replace(/src="js\/([\w-]+)\.js(\?v=[^"]*)?"/g, (m, n) => `src="js/${n}.js?${V}"`)

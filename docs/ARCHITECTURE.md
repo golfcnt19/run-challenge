@@ -7,7 +7,7 @@
    │
    ├─ อ่าน ──▶  GitHub Pages  (เว็บ static)  ──fetch CSV──▶  Google Sheets  (ฐานข้อมูล)
    │                                                              ▲
-   └─ กรอก ──▶  หน้า entry.html  ──POST JSON──▶  Google Apps Script  ──เขียนแถว──┘
+   └─ กรอก ──▶  หน้าหลัก (index)  ──POST JSON──▶  Google Apps Script  ──เขียนแถว──┘
 ```
 
 ไม่มี server ของตัวเอง ไม่มีค่าใช้จ่าย ไม่มีเครื่องหลับ
@@ -15,7 +15,10 @@
 ## Frontend — เว็บ static ล้วน
 
 - HTML + CSS + JavaScript ธรรมดา (ES modules) ไม่มี framework ไม่มีขั้น build
-- 3 หน้า: `index.html` (ตารางคะแนน 3 แท็บ) · `entry.html` (กรอก/ลบผล) · `cards.html` (ใช้การ์ดพิเศษ)
+- 3 หน้า: `index.html` = **หน้ากรอก/ลบผล + สรุปทีมตัวเอง** (หน้าหลัก ทุกคนเข้าได้) · `cards.html` (ใช้การ์ดพิเศษ) · `board.html` = **ตารางคะแนน 3 แท็บ** (ล็อกด้วย `board_pin`)
+- `entry.html` เหลือไว้เป็นตัว redirect ไปหน้าหลัก (ลิงก์เก่าที่เคยส่งในกลุ่ม)
+- **ใครเห็นอะไร**: หัวหน้าทีมเห็นเฉพาะทีมตัวเอง (คะแนนทีม · ใครส่งวันนี้ · รายการ 7 วันหลังสุด) — ไม่เห็นคะแนน/อันดับทีมอื่น · ตารางคะแนนเต็มเปิดให้ผู้มีรหัส, วันใน `reveal_dates` และหลัง `end_date`
+- การล็อกนี้**กันสายตา ไม่ใช่กันจริง** (ชีตยังแชร์อ่านสาธารณะ และ SHEET_ID อยู่ใน `js/config.js`)
 - ไลบรารีเดียว: Chart.js จาก cdnjs · ฟอนต์ Noto Sans Thai จาก Google Fonts
 - **คิดคะแนนทั้งหมดในเบราว์เซอร์** (`js/scoring.js`) — ดึงข้อมูลดิบมาแล้วคำนวณเอง
 - PWA เบื้องต้น: `manifest.webmanifest` + `icons/` เพิ่มลงหน้าจอโฮมได้ทั้ง iOS/Android
