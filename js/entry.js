@@ -1,8 +1,8 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz8t7gz";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz8t7gz";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz8t7gz";
-import { ENTRY_URL } from "./config.js?v=muz8t7gz";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muz96hwm";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muz96hwm";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muz96hwm";
+import { ENTRY_URL } from "./config.js?v=muz96hwm";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -19,6 +19,7 @@ let scored = null; // ผลคำนวณเต็มจาก computeScores (
 let rules = null;
 let entries = []; // ทุกรายการจากชีต (เรียงใหม่→เก่า) — อัปเดตในเครื่องเมื่อเพิ่ม/ลบ
 let sinceDate = ""; // วันแรกของช่วง 7 วันหลังสุด
+let unlockedTeam = ""; // ทีมที่ใส่ PIN ถูกแล้วในแท็บนี้ — ดูข้อมูลได้เฉพาะทีมนี้
 let teamId = store.get(LS.team) || "";
 let activity = "run";
 const RECENT_DAYS = 7; // แสดงรายการของทีมเฉพาะ 7 วันหลังสุด
@@ -85,7 +86,7 @@ function entryHtml(e, idx) {
 
 // สรุปทีมของฉัน — เห็นเฉพาะทีมตัวเอง ไม่มีอันดับ/ไม่เห็นทีมอื่น
 function renderMyTeam() {
-  const t = scored && scored.teams.find((x) => x.id === teamId);
+  const t = teamId && teamId === unlockedTeam && scored && scored.teams.find((x) => x.id === teamId);
   $("myteam-card").hidden = !t;
   if (!t) return;
   const today = todayIso();
@@ -110,9 +111,10 @@ function renderMyTeam() {
 }
 
 function renderRecent() {
-  const t = teams.find((x) => x.id === teamId);
+  const t = teamId === unlockedTeam && teams.find((x) => x.id === teamId);
   $("recent-card").hidden = !t;
-  $("no-team").hidden = Boolean(t);
+  $("no-team").hidden = Boolean(teamId);
+  renderUnlockUi();
   if (!t) return;
   $("recent-team").textContent = t.name;
   const mine = entries.map((e, i) => [e, i]).filter(([e]) => e.teamId === teamId && e.date >= sinceDate);
@@ -132,6 +134,41 @@ function renderDayHint() {
   el.hidden = false;
   el.className = "hint day-hint is-full";
   el.textContent = `${runner} ส่งของวัน ${fmtDateShort(date)} แล้ว: ${fmtAmount(done)} = ${fmtNum(p, 2)} คะแนน · 1 คน 1 กิจกรรม/วัน — ถ้ากรอกผิด ลบรายการเดิมด้านล่างก่อน`;
+}
+
+// ปุ่ม "ดูข้อมูลทีมของฉัน" — โชว์เมื่อเลือกทีมแล้วแต่ยังไม่ปลดล็อก
+function renderUnlockUi() {
+  const need = Boolean(teamId) && teamId !== unlockedTeam;
+  $("unlock-team").hidden = !need;
+  $("unlock-hint").hidden = !need;
+  if (need) $("unlock-hint").textContent = "ใส่ PIN ของทีมแล้วกดปุ่มนี้ เพื่อดูคะแนนและรายการของทีมตัวเอง";
+}
+
+async function unlockTeam() {
+  const pin = $("pin").value.trim().toUpperCase();
+  showError("");
+  if (!teamId) return showError("เลือกทีมก่อน");
+  if (!pin) return showError("ใส่ PIN ของทีม");
+  const btn = $("unlock-team");
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = "กำลังตรวจ…";
+  try {
+    // ส่ง runner ไปด้วย เพื่อให้ใช้ได้กับสคริปต์เวอร์ชันเก่าที่ยังไม่มี action "auth":
+    // เวอร์ชันเก่าจะวิ่งเข้า addEntry_ ซึ่งตรวจ PIN ก่อน แล้วค่อยตกที่ "วันที่ไม่ถูกต้อง" (ไม่เขียนอะไรลงชีต)
+    const t0 = teams.find((x) => x.id === teamId);
+    const out = await postApi(ENTRY_URL, { action: "auth", team_id: teamId, pin, runner: t0 ? t0.members[0] : "" });
+    const okOld = !out.ok && out.code !== "PIN" && /วันที่/.test(out.error || "");
+    if (!out.ok && !okOld) return showError(out.error || "PIN ไม่ถูกต้อง");
+    unlockedTeam = teamId;
+    renderMyTeam();
+    renderRecent();
+  } catch (err) {
+    showError(`ตรวจ PIN ไม่สำเร็จ: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 }
 
 function setActivity(v) {
@@ -188,6 +225,7 @@ async function submit(e) {
     }
     if (!out.ok) return showError(out.error || "บันทึกไม่สำเร็จ");
     store.set(LS.team, payload.team_id);
+    unlockedTeam = payload.team_id; // ส่งผลผ่าน = PIN ถูก ปลดล็อกดูข้อมูลทีมนี้ได้เลย
     entries.unshift({ ...out.entry, teamId: payload.team_id });
     renderRecent();
     renderMyTeam();
@@ -252,6 +290,7 @@ $("recent-list").addEventListener("click", (e) => {
   const b = e.target.closest("[data-del]");
   if (b) remove(Number(b.dataset.del), b);
 });
+$("unlock-team").addEventListener("click", unlockTeam);
 $("pin-toggle").addEventListener("click", () => {
   const show = $("pin").type === "password";
   $("pin").type = show ? "text" : "password";

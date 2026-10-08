@@ -1,6 +1,6 @@
 // โหลดข้อมูลจาก Google Sheets (CSV) หรือจาก sample-data/ ตอนพัฒนา
-import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=muz8t7gz";
-import { DEV, todayIso } from "./format.js?v=muz8t7gz";
+import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=muz96hwm";
+import { DEV, todayIso } from "./format.js?v=muz96hwm";
 
 // ข้อมูลจำลองทั้งเดือน (tools/simulate.js) — เฉพาะในเครื่อง: localhost:4174/?sim&today=2026-10-31
 const SIM = DEV && new URLSearchParams(location.search).has("sim");

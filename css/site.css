@@ -568,3 +568,8 @@ code { font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 1px 5px; border
 .lock-card h2 { margin-bottom: 6px; }
 .lock-card .btn-primary { width: 100%; margin-top: 12px; }
 .lock-card .field { margin-top: 14px; }
+.btn-ghost {
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 10px; padding: 9px 14px; font-weight: 600; font-size: 0.9rem; margin-top: 10px;
+}
+.btn-ghost[disabled] { opacity: 0.6; cursor: wait; }

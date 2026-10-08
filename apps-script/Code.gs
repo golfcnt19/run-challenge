@@ -73,6 +73,18 @@ function authorize_(b, teams) {
   return { team: team, teamId: teamId, member: member, isAdmin: isAdmin };
 }
 
+// ตรวจ PIN ทีมอย่างเดียว (ไม่เขียนอะไร) — หน้าเว็บใช้ปลดล็อกดูข้อมูลของทีมตัวเอง
+function authTeam_(b) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const teams = readTeams_(ss);
+  const teamId = String(b.team_id || "").trim().toUpperCase();
+  const pin = String(b.pin || "").trim();
+  if (!teams[teamId]) return { ok: false, error: "ไม่พบทีม " + teamId };
+  const isAdmin = PINS.ADMIN && pin === PINS.ADMIN;
+  if (!isAdmin && pin !== PINS[teamId]) return { ok: false, error: "PIN ไม่ถูกต้อง", code: "PIN" };
+  return { ok: true, team_id: teamId, admin: Boolean(isAdmin) };
+}
+
 // ลบรายการที่ตรงกับ date + runner + activity + amount (ถ้าซ้ำหลายแถว ลบแถวล่างสุด)
 function deleteEntry_(b) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
