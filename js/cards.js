@@ -1,10 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muzcdtia";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=muzcdtia";
-import { fmtDateLong } from "./format.js?v=muzcdtia";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=muzcdtia";
-import { verifyTeamPin } from "./auth.js?v=muzcdtia";
-import { ENTRY_URL } from "./config.js?v=muzcdtia";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv2jrsaq";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mv2jrsaq";
+import { fmtDateLong } from "./format.js?v=mv2jrsaq";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mv2jrsaq";
+import { verifyTeamPin } from "./auth.js?v=mv2jrsaq";
+import { ENTRY_URL } from "./config.js?v=mv2jrsaq";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

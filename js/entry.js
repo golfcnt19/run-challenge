@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=muzcdtia";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=muzcdtia";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=muzcdtia";
-import { verifyTeamPin } from "./auth.js?v=muzcdtia";
-import { ENTRY_URL } from "./config.js?v=muzcdtia";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv2jrsaq";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mv2jrsaq";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=mv2jrsaq";
+import { verifyTeamPin } from "./auth.js?v=mv2jrsaq";
+import { ENTRY_URL } from "./config.js?v=mv2jrsaq";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -129,6 +129,12 @@ function renderDayHint() {
   const el = $("day-hint");
   const runner = $("runner").value, date = $("date").value;
   const done = rules && runner && date ? dayEntry(runner, date) : null;
+  // ยังไม่ใส่ PIN = ไม่บอกว่าใครส่งอะไรไปแล้ว (กันดูข้อมูลทีมอื่น) ปุ่มบันทึกยังกดได้
+  // ถ้าซ้ำจริง เซิร์ฟเวอร์จะปฏิเสธเองด้วย code DAY_TAKEN
+  if (teamId !== unlockedTeam) {
+    $("submit").disabled = false;
+    return (el.hidden = true);
+  }
   $("submit").disabled = Boolean(done);
   if (!done) return (el.hidden = true);
   const p = Math.min(rawPoints(done.activity, done.amount, rules), rules.dailyCap);
