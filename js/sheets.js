@@ -1,6 +1,6 @@
 // โหลดข้อมูลจาก Google Sheets (CSV) หรือจาก sample-data/ ตอนพัฒนา
-import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mv2jrsaq";
-import { DEV, todayIso } from "./format.js?v=mv2jrsaq";
+import { USE_SAMPLE, SHEET_ID, TABS } from "./config.js?v=mv2n85s8";
+import { DEV, todayIso } from "./format.js?v=mv2n85s8";
 
 // ข้อมูลจำลองทั้งเดือน (tools/simulate.js) — เฉพาะในเครื่อง: localhost:4174/?sim&today=2026-10-31
 const SIM = DEV && new URLSearchParams(location.search).has("sim");
@@ -56,6 +56,9 @@ function tabUrl(tab) {
   if (USE_SAMPLE) return `sample-data/${tab}.csv?t=${Date.now()}`;
   const u = new URL(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`);
   u.searchParams.set("tqx", "out:csv");
+  // บังคับให้แถวแรกเป็นหัวคอลัมน์เสมอ — ถ้าไม่ใส่ gviz จะเดาเอง และถ้าทุกคอลัมน์เป็นข้อความ
+  // (เช่นแท็บ cards) มันจะรวมแถวที่ 1+2 เป็นหัวตาราง ทำให้ข้อมูลแถวแรกหายและคอลัมน์เพี้ยนทั้งแท็บ
+  u.searchParams.set("headers", "1");
   u.searchParams.set("sheet", tab);
   u.searchParams.set("t", String(Date.now())); // กัน cache
   return u.toString();
