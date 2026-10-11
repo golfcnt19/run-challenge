@@ -5,5 +5,5 @@ if git diff --cached --name-only | grep -qE '^(js/scoring\.js|js/format\.js|test
 fi
 # bump cache-busting version on every commit that touches web files
 if git diff --cached --name-only | grep -qE '^(js/|css/|index\.html|entry\.html|cards\.html)'; then
-  node tools/bump-version.js && git add js/*.js index.html entry.html cards.html version.json
+  node tools/bump-version.js && git add js/*.js index.html board.html cards.html version.json
 fi
