@@ -48,6 +48,7 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
+    if (body.action === "auth") return json_(authTeam_(body));
     if (body.action === "delete") return json_(deleteEntry_(body));
     if (body.action === "card") return json_(useCard_(body));
     return json_(addEntry_(body));

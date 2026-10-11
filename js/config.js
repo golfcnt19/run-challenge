@@ -12,4 +12,4 @@ export const TABS = { teams: "teams", runs: "runs", config: "config", cards: "ca
 
 // URL เว็บแอปของ Apps Script (ลงท้าย /exec) สำหรับหน้า entry.html — ดูวิธีได้ใน apps-script/Code.gs
 // ปล่อยว่างไว้ = หน้ากรอกยังใช้ไม่ได้ (จะขึ้นข้อความบอกวิธีตั้งค่า)
-export const ENTRY_URL = "https://script.google.com/macros/s/AKfycbzHXA9nJD2DMZRond_guihLQWCQb23HUsCzwx3aucsO3xeCnuTetZ9Tuq_yfba8qPnt/exec";
+export const ENTRY_URL = "https://script.google.com/macros/s/AKfycbztxwi8W63JNKq9y5yD91lpzltsCLOJWis9qZEwVxkPJLK2r_EeK0HpkpiTB2bkiXZr/exec";
