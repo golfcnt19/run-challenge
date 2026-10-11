@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv2n85s8";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mv2n85s8";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=mv2n85s8";
-import { verifyTeamPin } from "./auth.js?v=mv2n85s8";
-import { ENTRY_URL } from "./config.js?v=mv2n85s8";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv3yby08";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mv3yby08";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=mv3yby08";
+import { verifyTeamPin } from "./auth.js?v=mv3yby08";
+import { ENTRY_URL } from "./config.js?v=mv3yby08";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -37,6 +37,7 @@ async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
   $("date").value = todayIso();
   $("date").max = todayIso();
+  $("date").min = todayIso(); // กรอกได้เฉพาะของวันนี้
   try {
     const data = await loadAll();
     scored = computeScores(data);
@@ -45,7 +46,6 @@ async function init() {
     entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
     sinceDate = scored.days.length ? scored.days[Math.max(0, scored.days.length - RECENT_DAYS)] : "";
     $("range").textContent = `${rules.title} · ${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)}`;
-    $("date").min = rules.startDate;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
     renderChips();
     renderRunners();

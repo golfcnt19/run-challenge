@@ -95,6 +95,8 @@ function deleteEntry_(b) {
   const activity = normalizeActivity_(b.activity);
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!date || !activity || !isFinite(amount)) return { ok: false, error: "ข้อมูลรายการไม่ครบ" };
+  const todayDel = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+  if (!auth.isAdmin && date !== todayDel) return { ok: false, error: "ลบได้เฉพาะรายการของวันนี้ — ของวันก่อนหน้าให้แจ้งแอดมิน", code: "PAST" };
 
   const sh = ss.getSheetByName(SHEET_RUNS);
   if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
@@ -129,6 +131,8 @@ function addEntry_(b) {
   if (config.end_date && date > config.end_date) return { ok: false, error: "วันที่หลังจบกิจกรรม (" + config.end_date + ")" };
   const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
   if (date > today) return { ok: false, error: "กรอกล่วงหน้าไม่ได้" };
+  // กรอกได้เฉพาะของวันนี้ — ข้ามวันแล้วกรอกย้อนหลังไม่ได้ (ยกเว้น ADMIN ไว้แก้ให้ทีมที่ติดปัญหา)
+  if (!isAdmin && date !== today) return { ok: false, error: "กรอกได้เฉพาะผลของวันนี้ (" + today + ") — วันที่ " + date + " ผ่านไปแล้ว ถ้าจำเป็นให้แจ้งแอดมิน", code: "PAST" };
 
   const activity = normalizeActivity_(b.activity);
   if (!activity) return { ok: false, error: "กิจกรรมไม่ถูกต้อง" };
