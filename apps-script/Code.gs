@@ -97,7 +97,8 @@ function deleteEntry_(b) {
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!date || !activity || !isFinite(amount)) return { ok: false, error: "ข้อมูลรายการไม่ครบ" };
   const todayDel = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
-  if (!auth.isAdmin && date !== todayDel) return { ok: false, error: "ลบได้เฉพาะรายการของวันนี้ — ของวันก่อนหน้าให้แจ้งแอดมิน", code: "PAST" };
+  const oldestDel = oldestAllowed_(readConfig_(ss), todayDel);
+  if (!auth.isAdmin && date < oldestDel) return { ok: false, error: "ลบได้เฉพาะรายการตั้งแต่วันที่ " + oldestDel + " เป็นต้นมา — เก่ากว่านั้นให้แจ้งแอดมิน", code: "PAST" };
 
   const sh = ss.getSheetByName(SHEET_RUNS);
   if (!sh) return { ok: false, error: "ไม่พบแท็บ " + SHEET_RUNS };
@@ -132,8 +133,9 @@ function addEntry_(b) {
   if (config.end_date && date > config.end_date) return { ok: false, error: "วันที่หลังจบกิจกรรม (" + config.end_date + ")" };
   const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
   if (date > today) return { ok: false, error: "กรอกล่วงหน้าไม่ได้" };
-  // กรอกได้เฉพาะของวันนี้ — ข้ามวันแล้วกรอกย้อนหลังไม่ได้ (ยกเว้น ADMIN ไว้แก้ให้ทีมที่ติดปัญหา)
-  if (!isAdmin && date !== today) return { ok: false, error: "กรอกได้เฉพาะผลของวันนี้ (" + today + ") — วันที่ " + date + " ผ่านไปแล้ว ถ้าจำเป็นให้แจ้งแอดมิน", code: "PAST" };
+  // ย้อนหลังได้ไม่เกิน backfill_days วัน (ตั้งในชีต · 0 = วันนี้เท่านั้น · ค่าเริ่มต้น 1 = เมื่อวาน+วันนี้) ยกเว้น ADMIN
+  const oldest = oldestAllowed_(config, today);
+  if (!isAdmin && date < oldest) return { ok: false, error: "กรอกได้ถึงผลของวันที่ " + oldest + " เท่านั้น — วันที่ " + date + " เลยกำหนดแล้ว ถ้าจำเป็นให้แจ้งแอดมิน", code: "PAST" };
 
   const activity = normalizeActivity_(b.activity);
   if (!activity) return { ok: false, error: "กิจกรรมไม่ถูกต้อง" };
@@ -261,6 +263,15 @@ function ensureCardHeaders_(sh) {
   const want = ["date", "team_id", "card", "runner", "target_team", "target_runner", "submitted_at"];
   const have = sh.getRange(1, 1, 1, want.length).getValues()[0];
   want.forEach((h, i) => { if (!have[i]) sh.getRange(1, i + 1).setValue(h); });
+}
+
+// วันเก่าสุดที่ยังกรอก/ลบได้ = วันนี้ − backfill_days
+function oldestAllowed_(config, today) {
+  const n = parseInt(config.backfill_days, 10);
+  const days = isNaN(n) ? 1 : Math.max(0, n);
+  const d = new Date(today + "T00:00:00+07:00");
+  d.setDate(d.getDate() - days);
+  return Utilities.formatDate(d, "Asia/Bangkok", "yyyy-MM-dd");
 }
 
 function ensureHeaders_(sh) {

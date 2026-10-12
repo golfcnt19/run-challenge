@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mv3yvrn0";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv3yvrn0";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv3yvrn0";
-import { USE_SAMPLE } from "./config.js?v=mv3yvrn0";
+import { loadAll } from "./sheets.js?v=mv4o2m7j";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv4o2m7j";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv4o2m7j";
+import { USE_SAMPLE } from "./config.js?v=mv4o2m7j";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

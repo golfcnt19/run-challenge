@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv3yvrn0";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mv3yvrn0";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate } from "./format.js?v=mv3yvrn0";
-import { verifyTeamPin } from "./auth.js?v=mv3yvrn0";
-import { ENTRY_URL } from "./config.js?v=mv3yvrn0";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mv4o2m7j";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mv4o2m7j";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mv4o2m7j";
+import { verifyTeamPin } from "./auth.js?v=mv4o2m7j";
+import { ENTRY_URL } from "./config.js?v=mv4o2m7j";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -37,7 +37,7 @@ async function init() {
   $("setup").hidden = Boolean(ENTRY_URL);
   $("date").value = todayIso();
   $("date").max = todayIso();
-  $("date").min = todayIso(); // กรอกได้เฉพาะของวันนี้
+
   try {
     const data = await loadAll();
     scored = computeScores(data);
@@ -45,6 +45,12 @@ async function init() {
     teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
     entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
     sinceDate = scored.days.length ? scored.days[Math.max(0, scored.days.length - RECENT_DAYS)] : "";
+    // ย้อนหลังได้ตาม backfill_days ในชีต (ค่าเริ่มต้น 1 วัน)
+    const oldest = addDays(todayIso(), -Math.max(0, rules.backfillDays));
+    $("date").min = oldest < rules.startDate ? rules.startDate : oldest;
+    $("date-hint").textContent = rules.backfillDays > 0
+      ? `กรอกได้ถึงผลของวันที่ ${fmtDateShort($("date").min)} (ย้อนหลังได้ ${rules.backfillDays} วัน)`
+      : "กรอกได้เฉพาะผลของวันนี้";
     $("range").textContent = `${rules.title} · ${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)}`;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
     renderChips();

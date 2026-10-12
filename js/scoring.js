@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv3yvrn0";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv4o2m7j";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -94,6 +94,7 @@ export function readRules(config) {
     bikeKmForFull: num("bike_km_for_full", 20),
     sportMinutesForFull: num("sport_minutes_for_full", 60),
     sportMinMinutes: num("sport_min_minutes", 15),
+    backfillDays: num("backfill_days", 1), // ย้อนหลังได้กี่วัน (0 = วันนี้เท่านั้น)
     teamSize: num("team_size", 5), // ขนาดทีมมาตรฐาน — ทีมที่คนไม่เท่านี้คิดสัดส่วน
     // โหมดลุ้น: เปิดตารางคะแนนเฉพาะวันที่ระบุ (เว้นว่าง = เปิดตลอดเวลาแบบเดิม)
     revealDates: String(config.reveal_dates || "").split(",").map((x) => x.trim()).filter(Boolean).sort(),

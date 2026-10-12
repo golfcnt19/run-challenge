@@ -14,6 +14,7 @@
 | เปลี่ยน PIN ทีม | Apps Script → `PINS` ใน Code.gs | ใช่ (Apps Script เวอร์ชันใหม่) |
 | เปลี่ยนสูตรคะแนน (ไม่ใช่แค่ตัวเลข) | `js/scoring.js` + `apps-script/Code.gs` | ใช่ ทั้งเว็บและสคริปต์ |
 | แก้หน้าตาเว็บ | `index.html` (หน้ากรอก) / `board.html` (ตารางคะแนน) / `cards.html` / `css` / `js` | ใช่ (push `main`) |
+| เปิด/ปิดการกรอกย้อนหลัง | ชีต `config` → `backfill_days` (0 = วันนี้เท่านั้น · 1 = เมื่อวาน+วันนี้) | ไม่ |
 | เปลี่ยนรหัสดูตารางคะแนน | ชีต `config` → `board_pin` | ไม่ |
 | เปิดตารางคะแนนให้ทุกคนบางวัน | ชีต `config` → `reveal_dates` | ไม่ |
 
