@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mv97c6xx";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv97c6xx";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv97c6xx";
-import { USE_SAMPLE } from "./config.js?v=mv97c6xx";
+import { loadAll } from "./sheets.js?v=mv9909cf";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv9909cf";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv9909cf";
+import { USE_SAMPLE } from "./config.js?v=mv9909cf";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -176,7 +176,8 @@ function renderPodium(teams, rules) {
   const order = [top[1], top[0], top[2]].filter(Boolean); // 2-1-3
   const cls = { 1: "s1", 2: "s2", 3: "s3" };
   const medal = { 1: "🥇", 2: "🥈", 3: "🥉" };
-  const mvp = state.runners[0];
+  const mvp = state.runners[0]; // คะแนนเสมอ → ตัดสินด้วยระยะวิ่งจริง (เรียงไว้แล้วใน scoring.js)
+  const mvpByKm = mvp && state.runners[1] && Math.round(state.runners[1].pts * 100) === Math.round(mvp.pts * 100);
   const totalKm = state.entries.filter((e) => ["run", "treadmill", "bike"].includes(e.activity)).reduce((s, e) => s + e.amount, 0);
   const totalSteps = state.entries.filter((e) => e.activity === "walk").reduce((s, e) => s + e.amount, 0);
   const totalPts = teams.reduce((s, t) => s + t.rawPts, 0);
@@ -192,7 +193,7 @@ function renderPodium(teams, rules) {
         </div>
       </div>`).join("")}</div>
     <div class="podium-stats">
-      <div class="stat"><b>${mvp ? esc(mvp.name) : "–"}</b><small>⭐ MVP ${mvp ? fmtPts(mvp.pts) + " คะแนน" : ""}</small></div>
+      <div class="stat"><b>${mvp ? esc(mvp.name) : "–"}</b><small>⭐ MVP ${mvp ? fmtPts(mvp.pts) + " คะแนน" + (mvpByKm ? `<br>เสมอ · วิ่งไกลกว่า ${fmtPts(mvp.runKm)} กม.` : "") : ""}</small></div>
       <div class="stat"><b>${fmtNum(totalKm)}</b><small>กม. รวมทุกคน</small></div>
       <div class="stat"><b>${fmtNum(totalSteps)}</b><small>ก้าว รวมทุกคน</small></div>
       <div class="stat"><b>${fmtPts(totalPts)}</b><small>คะแนน รวมทุกคน</small></div>

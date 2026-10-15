@@ -218,6 +218,12 @@ test("ระยะวิ่งจริง (runKm): วิ่งสวน + ว�
   eq(km("b1"), 8, "b1");
 });
 
+test("MVP: คะแนนเสมอ → ระยะวิ่งจริงมากกว่าขึ้นก่อน", () => {
+  // a1 เดินเต็ม 5 (0 กม.) · b1 วิ่ง 8 กม. ก็ได้ 5 (ติดเพดาน) → b1 ต้องนำ แม้ทีม A มาก่อนในชีต
+  const res = score({ runs: [row(D, "a1", "walk", 10000), row(D, "b1", "run", 8), row(D, "c1", "run", 3)] });
+  assert.deepEqual(res.runners.slice(0, 3).map((r) => r.name), ["b1", "a1", "c1"]);
+});
+
 // ── ล็อกตารางคะแนน (board_pin + reveal_dates) ──────────────────
 test("ไม่ตั้ง board_pin = ใครก็ดูตารางคะแนนได้", () => {
   const r = readRules(CONFIG);

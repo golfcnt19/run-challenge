@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv97c6xx";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv9909cf";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -459,7 +459,8 @@ export function computeScores(data, today = todayIso()) {
     starStreak,
     rules,
     teams: teamStats,
-    runners: [...runners.values()].sort((a, b) => b.pts - a.pts),
+    // คะแนนเท่ากัน (ปัด 2 ตำแหน่งเหมือนที่แสดง) → ระยะวิ่งจริงมากกว่าขึ้นก่อน — ใช้ตัดสิน MVP
+    runners: [...runners.values()].sort((a, b) => r2(b.pts) - r2(a.pts) || b.runKm - a.runKm),
     entries: entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line)),
     days,
     totalDays,
