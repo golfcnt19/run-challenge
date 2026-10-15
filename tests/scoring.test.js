@@ -204,6 +204,20 @@ test("สรุปวัน: คะแนนรวม = ผลรวมจริ
   eq(res.dayStats[res.days.indexOf(D)].total, 55);
 });
 
+test("ระยะวิ่งจริง (runKm): วิ่งสวน + วิ่งลู่ ไม่ตัดเพดาน · โดน block ก็ยังนับ · เดิน/ปั่นไม่นับ", () => {
+  const D2 = "2026-10-07";
+  const res = score({
+    runs: [row(D, "a1", "run", 12.5), row(D2, "a1", "treadmill", 3), row(D, "a2", "walk", 20000), row(D, "a3", "bike", 40), row(D, "b1", "run", 8)],
+    cards: [block(D, "B", "A", "a1")],
+  });
+  const km = (n) => res.runners.find((r) => r.name === n).runKm;
+  eq(km("a1"), 15.5, "a1");
+  eq(person(res, "a1", D), 0, "a1 โดน block คะแนนวันนั้น");
+  eq(km("a2"), 0, "เดิน");
+  eq(km("a3"), 0, "ปั่น");
+  eq(km("b1"), 8, "b1");
+});
+
 // ── ล็อกตารางคะแนน (board_pin + reveal_dates) ──────────────────
 test("ไม่ตั้ง board_pin = ใครก็ดูตารางคะแนนได้", () => {
   const r = readRules(CONFIG);

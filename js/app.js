@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mv4o2m7j";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv4o2m7j";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv4o2m7j";
-import { USE_SAMPLE } from "./config.js?v=mv4o2m7j";
+import { loadAll } from "./sheets.js?v=mv97c6xx";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv97c6xx";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv97c6xx";
+import { USE_SAMPLE } from "./config.js?v=mv97c6xx";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -375,14 +375,15 @@ function renderWeekCards(teams) {
   $("week-cards").innerHTML = head + `<tbody>${body}</tbody>`;
 }
 
+// นักวิ่งเด่น = ระยะวิ่งจริงสะสม (วิ่งสวน + วิ่งลู่) — ไม่ใช้คะแนน เพราะติดเพดาน 5/วัน จนวิ่งไกลแค่ไหนก็เสมอกัน
 function renderTopRunners(runners) {
-  const top = runners.filter((r) => r.pts > 0).slice(0, 3);
+  const top = runners.filter((r) => r.runKm > 0).sort((a, b) => b.runKm - a.runKm).slice(0, 3);
   $("top-runners-card").hidden = top.length === 0;
   $("top-runners").innerHTML = top
     .map((r, i) => `<li>
       <span class="tr-medal">${["🥇", "🥈", "🥉"][i]}</span>
       <span class="tr-name">${esc(r.name)} <small style="color:${esc(r.team.color)}">● ${esc(r.team.name)}</small></span>
-      <b>${fmtPts(r.pts)}</b></li>`)
+      <b>${fmtPts(r.runKm)} <small>กม.</small></b></li>`)
     .join("");
 }
 

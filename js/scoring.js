@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv4o2m7j";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv97c6xx";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -314,10 +314,11 @@ export function computeScores(data, today = todayIso()) {
   const runners = new Map();
   for (const t of teams)
     for (const m of t.members)
-      runners.set(m, { name: m, team: t, pts: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, bonus: {}, blocked: {}, cardDays: {} });
+      runners.set(m, { name: m, team: t, pts: 0, runKm: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, bonus: {}, blocked: {}, cardDays: {} });
   for (const d of perRunnerDay.values()) {
     const r = runners.get(d.runner);
     r.pts += d.pts;
+    r.runKm += (d.byActivity.run || 0) + (d.byActivity.treadmill || 0); // ระยะวิ่งจริง ไม่ตัดเพดาน ไม่คิดการ์ด — ใช้จัดนักวิ่งเด่น
     if (d.raw > 0) r.daysActive++;
     if (d.pts >= rules.dailyCap) r.fullDays++;
     r.days[d.date] = d.pts;
