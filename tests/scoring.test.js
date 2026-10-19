@@ -103,6 +103,21 @@ test("เดอะแบก: 7 → โอนได้ 2 · 4 → โอนไม
   eq(b.amount, 0); eq(b.effect, 0);
 });
 
+test("เดอะแบก: ผู้ให้โดน block → โอนไม่ได้ · ยังไม่เฉลย → โอนตามปกติ", () => {
+  const runs = [row(D, "a1", "run", 15), row(D, "a2", "run", 2)];
+  const cards = [carry(D, "A", "a1", "a2"), block(D, "B", "A", "a1")];
+  const res = score({ runs, cards });
+  const c = res.cards.find((x) => x.card === "carry");
+  eq(c.amount, 0); eq(c.effect, 0);
+  assert.equal(c.giverBlocked, true);
+  eq(person(res, "a1", D), 0, "a1 โดน block");
+  eq(person(res, "a2", D), 2, "a2 ได้แค่ของตัวเอง");
+  // วันเดียวกันที่ block ยังไม่เฉลย → ระหว่างวันยังเห็นการโอน
+  const live = score({ runs, cards, today: D });
+  eq(live.cards.find((x) => x.card === "carry").amount, 5);
+  eq(person(live, "a2", D), 5);
+});
+
 // ── Block ────────────────────────────────────────────────────────
 test("block: ทีม 5 และ 6 คนเสียเท่ากัน (20 = 20, effect −5 ทั้งคู่)", () => {
   const res = score({ runs: [...runAll(D, A, 5), ...runAll(D, G, 5)], cards: [block(D, "G", "A", "a2"), block(D, "A", "G", "g2")] });

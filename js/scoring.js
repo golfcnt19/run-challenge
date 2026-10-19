@@ -14,12 +14,12 @@
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
 //   x2    (✖️2)         ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 เกินเพดานได้ สูงสุด 2×เพดาน
-//   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง
+//   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง (ผู้ให้เดอะแบกที่โดน block โอนไม่ได้)
 //                        1 คนโดน block ได้ 1 วัน/วีค · วันเดียวกันหลายทีมซ้อนได้ = มีผลใบเดียว เสียทุกใบ
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mv9909cf";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvelymwg";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -253,10 +253,11 @@ export function computeScores(data, today = todayIso()) {
     const d = dayOf(c.target, c.date);
     (d.blockedBy ||= []).push(c.team);
   }
-  // carry: โอนส่วนเกินเพดาน สูงสุด = เพดาน
+  // carry: โอนส่วนเกินเพดาน สูงสุด = เพดาน · ผู้ให้โดน block (ที่เฉลยแล้ว) → โอนไม่ได้
   for (const c of cards) if (c.card === "carry") {
     const g = dayOf(c.runner, c.date), t = dayOf(c.target, c.date);
-    const give = Math.min(Math.max(g.raw - rules.dailyCap, 0), rules.dailyCap);
+    c.giverBlocked = Boolean(g.blockedBy);
+    const give = c.giverBlocked ? 0 : Math.min(Math.max(g.raw - rules.dailyCap, 0), rules.dailyCap);
     c.amount = give;
     if (give > 0) { g.carriedOut = (g.carriedOut || 0) + give; t.carriedIn = (t.carriedIn || 0) + give; t.carriedFrom = c.runner; }
   }
@@ -279,7 +280,7 @@ export function computeScores(data, today = todayIso()) {
       const withoutIn = t.blockedBy ? 0 : Math.min(t.raw, cap);
       c.personDelta = t.pts - withoutIn; // ที่ผู้รับได้เพิ่มจริง (0 ถ้าผู้รับเต็มอยู่แล้ว/โดน block)
       c.effect = c.personDelta; // ผลต่อทีม = ผลต่อคน (ไม่คิดสัดส่วน)
-      c.detail = c.amount > 0 ? `${c.target} ${r2(withoutIn)} → ${r2(t.pts)}` : "ผู้ให้ไม่มีส่วนเกิน";
+      c.detail = c.amount > 0 ? `${c.target} ${r2(withoutIn)} → ${r2(t.pts)}` : c.giverBlocked ? `${c.runner} โดน block โอนไม่ได้` : "ผู้ให้ไม่มีส่วนเกิน";
     } else if (c.card === "x2") {
       const d = dayOf(c.runner, c.date);
       const without = d.blockedBy ? 0 : Math.min(d.raw + (d.carriedIn || 0), cap);

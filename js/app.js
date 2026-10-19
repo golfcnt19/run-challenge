@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mv9909cf";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mv9909cf";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mv9909cf";
-import { USE_SAMPLE } from "./config.js?v=mv9909cf";
+import { loadAll } from "./sheets.js?v=mvelymwg";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvelymwg";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvelymwg";
+import { USE_SAMPLE } from "./config.js?v=mvelymwg";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -429,7 +429,7 @@ function renderRules(r) {
 // ── รายวัน ─────────────────────────────────────────────────────────
 // ข้อความอธิบายการ์ด 1 ใบ เช่น "🎒 Jay → Bird +5"
 function cardTitle(c) {
-  if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : " (ไม่มีส่วนเกิน)"}`;
+  if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : c.giverBlocked ? " (ผู้ให้โดน block)" : " (ไม่มีส่วนเกิน)"}`;
   if (c.card === "x2") return `✖️2 ${c.runner}`;
   return c.revealed ? `🛡️ block ${c.target} (${c.targetTeam.id})` : "🛡️ block — เฉลยพรุ่งนี้";
 }
