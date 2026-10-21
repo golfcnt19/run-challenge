@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvhhqj15";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvhhqj15";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvhhqj15";
-import { USE_SAMPLE } from "./config.js?v=mvhhqj15";
+import { loadAll } from "./sheets.js?v=mvhi7fuc";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvhi7fuc";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvhi7fuc";
+import { USE_SAMPLE } from "./config.js?v=mvhi7fuc";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -547,7 +547,7 @@ function renderTeam(t) {
   const sum = (a, digits = 0) => (t.byActivity[a] ? `${fmtNum(t.byActivity[a], digits)}` : "0"); // ยอดรวมต่อกิจกรรมของทีม
   const sportMin = TIMED.reduce((s, k) => s + (t.byActivity[k] || 0), 0);
 
-  const runners = t.runners
+  const runners = [...t.runners, ...t.ignoredRunners] // คนใน ignore_runners ต่อท้าย ไม่มีลำดับ ป้าย "ไม่นับ"
     .map((r, i) => {
       // เรียงคงที่ วิ่งสวน → วิ่งลู่ → เดิน → ปั่น แล้วรวมกีฬาอื่น ๆ (นาที) เป็นก้อนเดียว
       const parts = ["run", "treadmill", "walk", "bike"].filter((a) => r.byActivity[a]).map((a) => `${act(a).icon} ${fmtNum(r.byActivity[a], a === "walk" ? 0 : 1)} ${act(a).unit}`);
@@ -555,11 +555,11 @@ function renderTeam(t) {
       if (other) parts.push(`🏸 ${fmtNum(other)} นาที`);
       const pct = maxPerRunner ? Math.min(100, (r.pts / maxPerRunner) * 100) : 0;
       return `
-      <li class="runner is-clickable" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">
-        <span class="n">${i + 1}</span>
+      <li class="runner is-clickable${r.ignored ? " is-ignored" : ""}" data-runner="${esc(r.name)}" tabindex="0" role="button" aria-expanded="false" aria-label="ดูผลของ ${esc(r.name)}">
+        <span class="n">${r.ignored ? "–" : i + 1}</span>
         <div><div class="name">${esc(r.name)}</div>
           <div class="detail">ส่งผล ${r.daysActive}/${daysElapsed} วัน${parts.length ? " · " + parts.join(" · ") : ""}</div></div>
-        <div class="pts">${fmtPts(r.pts)}<small>คะแนน</small></div>
+        <div class="pts">${fmtPts(r.pts)}<small>${r.ignored ? "ไม่นับ" : "คะแนน"}</small></div>
         <div class="bar"><span style="width:${pct}%"></span></div>
         <div class="runner-log" hidden></div>
       </li>`;
@@ -568,9 +568,10 @@ function renderTeam(t) {
 
   // รายการล่าสุด: เฉพาะ 7 วันหลังสุดของกิจกรรม
   const since = state.days.length ? state.days[Math.max(0, state.days.length - 7)] : "";
-  const log = state.entries
+  const log = [...state.entries, ...state.ignoredEntries]
     .filter((e) => e.team.id === t.id && e.date >= since)
-    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${act(e.activity).icon} ${fmtNum(e.amount, act(e.activity).timed || e.activity === "walk" ? 0 : 2)} ${act(e.activity).unit}</li>`)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line))
+    .map((e) => `<li><span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}${e.ignored ? ` <small class="dim">ไม่นับ</small>` : ""}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}<span class="a">${act(e.activity).icon} ${fmtNum(e.amount, act(e.activity).timed || e.activity === "walk" ? 0 : 2)} ${act(e.activity).unit}</li>`)
     .join("");
 
   $("team-detail").innerHTML = `
@@ -623,8 +624,8 @@ function toggleRunner(li) {
     o.setAttribute("aria-expanded", "false");
   });
   if (!open) return;
-  const r = state.runners.find((x) => x.name === name);
-  const list = state.entries.filter((e) => e.runner === name);
+  const r = state.runners.find((x) => x.name === name) || state.teams.flatMap((t) => t.ignoredRunners).find((x) => x.name === name);
+  const list = (r.ignored ? state.ignoredEntries : state.entries).filter((e) => e.runner === name);
   box.innerHTML = list.length
     ? `<ul class="log">${list.map((e) => `<li>
         <span class="d">${fmtDateShort(e.date)}</span>

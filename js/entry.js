@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvhhqj15";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvhhqj15";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvhhqj15";
-import { verifyTeamPin } from "./auth.js?v=mvhhqj15";
-import { ENTRY_URL } from "./config.js?v=mvhhqj15";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvhi7fuc";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvhi7fuc";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvhi7fuc";
+import { verifyTeamPin } from "./auth.js?v=mvhi7fuc";
+import { ENTRY_URL } from "./config.js?v=mvhi7fuc";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -42,8 +42,11 @@ async function init() {
     const data = await loadAll();
     scored = computeScores(data);
     rules = scored.rules;
-    teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members }));
-    entries = scored.entries.map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note }));
+    // คนใน ignore_runners ยังกรอกได้ (ต่อท้ายรายชื่อ) แต่ผลมีป้าย "ไม่นับ"
+    teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: [...t.members, ...t.ignored], ignored: t.ignored }));
+    entries = [...scored.entries, ...scored.ignoredEntries]
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line))
+      .map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note, ignored: Boolean(e.ignored) }));
     sinceDate = scored.days.length ? scored.days[Math.max(0, scored.days.length - RECENT_DAYS)] : "";
     // ย้อนหลังได้ตาม backfill_days ในชีต (ค่าเริ่มต้น 1 วัน)
     const oldest = addDays(todayIso(), -Math.max(0, rules.backfillDays));
@@ -76,7 +79,7 @@ function renderRunners() {
   const t = teams.find((x) => x.id === teamId);
   const sel = $("runner");
   sel.innerHTML = t
-    ? `<option value="">— เลือกชื่อ —</option>` + t.members.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("")
+    ? `<option value="">— เลือกชื่อ —</option>` + t.members.map((m) => `<option value="${esc(m)}">${esc(m)}${t.ignored.includes(m) ? " (ไม่นับคะแนน)" : ""}</option>`).join("")
     : `<option value="">— เลือกทีมก่อน —</option>`;
   sel.disabled = !t;
   if (rules) renderDayHint(); // เปลี่ยนทีม → ชื่อรีเซ็ต ปุ่มบันทึกต้องกลับมากดได้
@@ -85,7 +88,7 @@ function renderRunners() {
 function entryHtml(e, idx) {
   const a = act(e.activity);
   return `<li data-idx="${idx}">
-    <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
+    <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}${e.ignored ? ` <small class="dim">ไม่นับ</small>` : ""}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
     <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
     <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
   </li>`;
@@ -104,14 +107,16 @@ function renderMyTeam() {
     <div class="stat"><b>${fmtNum(t.pts, 2)}</b><small>คะแนนทีมเรา</small></div>
     <div class="stat"><b>${sent.length}<span class="dim">/${t.members.length}</span></b><small>ส่งผลวันนี้</small></div>
     <div class="stat"><b>${t.entries}</b><small>รายการทั้งหมด</small></div>`;
-  $("myteam-today").innerHTML = t.members
+  $("myteam-today").innerHTML = [...t.members, ...t.ignored] // คนที่ไม่นับต่อท้าย ช่องคะแนนเขียน "ไม่นับ"
     .map((m) => {
+      const ign = t.ignored.includes(m);
       const r = t.runners.find((x) => x.name === m);
       const en = entries.find((x) => x.runner === m && x.date === today);
       const a = en && act(en.activity);
+      const pt = ign ? `<span class="pt dim">ไม่นับ</span>` : `<span class="pt">${en ? fmtNum(r ? r.days[today] || 0 : 0, 2) : "—"}</span>`;
       const what = en
-        ? `<span class="what">${a.icon} ${fmtNum(en.amount, a.timed || en.activity === "walk" ? 0 : 2)} ${a.unit}</span><span class="pt">${fmtNum(r ? r.days[today] || 0 : 0, 2)}</span>`
-        : `<span class="what dim">ยังไม่ส่ง</span><span class="pt">—</span>`;
+        ? `<span class="what">${a.icon} ${fmtNum(en.amount, a.timed || en.activity === "walk" ? 0 : 2)} ${a.unit}</span>${pt}`
+        : `<span class="what dim">ยังไม่ส่ง</span>${pt}`;
       return `<li class="${en ? "is-done" : ""}"><span class="tick">${en ? "✅" : "⬜"}</span><span class="nm">${esc(m)}</span>${what}</li>`;
     })
     .join("");
@@ -236,7 +241,7 @@ async function submit(e) {
     if (!out.ok) return showError(out.error || "บันทึกไม่สำเร็จ");
     store.set(LS.team, payload.team_id);
     unlockedTeam = payload.team_id; // ส่งผลผ่าน = PIN ถูก ปลดล็อกดูข้อมูลทีมนี้ได้เลย
-    entries.unshift({ ...out.entry, teamId: payload.team_id });
+    entries.unshift({ ...out.entry, teamId: payload.team_id, ignored: (teams.find((x) => x.id === payload.team_id)?.ignored || []).includes(out.entry.runner) });
     renderRecent();
     renderMyTeam();
     renderDayHint();

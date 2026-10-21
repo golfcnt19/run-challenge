@@ -69,7 +69,7 @@ function authorize_(b, teams) {
   const isAdmin = PINS.ADMIN && pin === PINS.ADMIN;
   if (!isAdmin && pin !== PINS[teamId]) return { error: "PIN ไม่ถูกต้อง", code: "PIN" };
   const runner = String(b.runner || "").trim();
-  const member = team.members.find((m) => m.toLowerCase() === runner.toLowerCase());
+  const member = team.all.find((m) => m.toLowerCase() === runner.toLowerCase()); // รวมคนที่ไม่นับ — กรอก/ลบได้
   if (!member) return { error: runner + " ไม่ได้อยู่ในทีม " + teamId };
   return { team: team, teamId: teamId, member: member, isAdmin: isAdmin };
 }
@@ -283,7 +283,8 @@ function ensureHeaders_(sh) {
   });
 }
 
-// config ใส่ไว้ = ตัดคนใน ignore_runners ออกจาก members (กรอกแทนไม่ได้ · x2 ไม่สุ่มโดน · เลือกในการ์ดไม่ได้) — ตรงกับ js/scoring.js
+// members = คนที่นับคะแนน (ใช้กับการ์ด: x2 ไม่สุ่มโดน · เดอะแบก/block เลือกไม่ได้)
+// all     = ทุกคนรวมคนใน ignore_runners (ใช้ตอนกรอก/ลบผล — กรอกได้แต่ไม่นับ) — ตรงกับ js/scoring.js
 function readTeams_(ss, config) {
   const sh = ss.getSheetByName(SHEET_TEAMS);
   if (!sh) throw new Error("ไม่พบแท็บ " + SHEET_TEAMS);
@@ -295,7 +296,8 @@ function readTeams_(ss, config) {
   rows.slice(1).forEach((r) => {
     const id = String(r[iId] || "").trim().toUpperCase();
     if (!id) return;
-    out[id] = { members: String(r[iM] || "").split(",").map((s) => s.trim()).filter((m) => m && ignore.indexOf(m.toLowerCase()) < 0) };
+    const all = String(r[iM] || "").split(",").map((s) => s.trim()).filter(Boolean);
+    out[id] = { all: all, members: all.filter((m) => ignore.indexOf(m.toLowerCase()) < 0) };
   });
   return out;
 }

@@ -242,7 +242,7 @@ test("MVP: คะแนนเสมอ → ระยะวิ่งจริง�
 // ── ignore_runners: ตัดคนออกจากทีม (ทีมเล็กลง คิดสัดส่วนใหม่) ─────────
 const scoreCfg = (cfg, { runs = [], cards = [], today = "2026-10-20" } = {}) => computeScores({ config: { ...CONFIG, ...cfg }, teams: TEAMS, runs, cards }, today);
 
-test("ignore_runners: ทีม 6 คนตัด 1 คน → คิดแบบทีม 5 คน · แถวของคนนั้นข้ามเงียบ ๆ", () => {
+test("ignore_runners: ทีม 6 คนตัด 1 คน → คิดแบบทีม 5 คน · ผลของคนนั้นเก็บแยก ไม่เข้าคะแนน/สถิติ", () => {
   const runs = [...runAll(D, A, 5), ...runAll(D, G, 5)];
   eq(day(score({ runs: [...runAll(D, A, 5), ...runAll(D, G.slice(0, 5), 5)] }), "G", D), 25 * 5 / 6, "ไม่ตัด g6 แต่ g6 ไม่ส่ง");
   const res = scoreCfg({ ignore_runners: "G6" }, { runs }); // ตัวพิมพ์ไม่สำคัญ
@@ -252,7 +252,20 @@ test("ignore_runners: ทีม 6 คนตัด 1 คน → คิดแบ�
   eq(day(res, "G", D), 25, "G");
   eq(day(res, "A", D), 25, "A");
   assert.equal(res.warnings.length, 0, res.warnings.join(" | "));
+  // ไม่อยู่ในอันดับรายคน/สถิติ แต่มีผลให้โชว์
   assert.equal(res.runners.some((r) => r.name === "g6"), false);
+  assert.equal(res.entries.some((e) => e.runner === "g6"), false);
+  assert.deepEqual(res.ignoredEntries.map((e) => e.runner), ["g6"]);
+  eq(g.ignoredRunners[0].pts, 5, "คะแนนของ g6 (โชว์เฉย ๆ)");
+  eq(res.dayStats[res.days.indexOf(D)].total, 50, "ยอดรวมวันนั้นไม่รวม g6");
+  eq(res.dayStats[res.days.indexOf(D)].submitters, 10, "คนส่งผลไม่รวม g6");
+  assert.equal(g.entries, 5, "จำนวนรายการของทีมไม่รวม g6");
+});
+
+test("ignore_runners: คนที่ไม่นับยังติดกติกา 1 คน 1 กิจกรรม/วัน", () => {
+  const res = scoreCfg({ ignore_runners: "g6" }, { runs: [row(D, "g6", "walk", 3000), row(D, "g6", "run", 5)] });
+  assert.equal(res.ignoredEntries.length, 1);
+  assert.ok(res.warnings.some((w) => w.includes("g6 ส่งวันที่")));
 });
 
 test("ignore_runners: ทีม 5 คนตัด 1 คน → ทีม 4 คน ×5/4 · การ์ดยังเท่ากันทุกทีม", () => {

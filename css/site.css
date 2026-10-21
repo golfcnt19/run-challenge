@@ -159,6 +159,7 @@ button { font: inherit; cursor: pointer; }
 .runner .n { color: var(--muted); font-size: 0.85rem; text-align: center; }
 .runner .name { font-weight: 600; }
 .runner .detail { font-size: 0.78rem; color: var(--muted); }
+.runner.is-ignored > :not(.runner-log) { opacity: 0.55; } /* ignore_runners — กรอกได้แต่ไม่นับ (ตอนกางดูรายการไม่จาง) */
 .runner .pts { text-align: right; font-weight: 700; font-size: 1.1rem; }
 .runner .pts small { display: block; font-weight: 400; font-size: 0.72rem; color: var(--muted); }
 .runner .bar { grid-column: 2 / -1; height: 5px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }

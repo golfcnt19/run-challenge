@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvhhqj15";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvhi7fuc";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -96,7 +96,8 @@ export function readRules(config) {
     sportMinMinutes: num("sport_min_minutes", 15),
     backfillDays: num("backfill_days", 1), // ย้อนหลังได้กี่วัน (0 = วันนี้เท่านั้น)
     teamSize: num("team_size", 5), // ขนาดทีมมาตรฐาน — ทีมที่คนไม่เท่านี้คิดสัดส่วน
-    // คนที่ไม่นับคะแนน (คั่นด้วย ,) — ตัดออกจากทีมทั้งงาน ทีมเล็กลงแล้วคิดสัดส่วนใหม่ · แถวของคนนี้ข้ามเงียบ ๆ
+    // คนที่ไม่นับคะแนน (คั่นด้วย ,) — ยังกรอกได้ โชว์ผลได้ แต่ไม่นับเป็นคนในทีม (ทีมเล็กลง คิดสัดส่วนใหม่ ทั้งงาน)
+    //   ไม่เข้าคะแนนทีม/อันดับรายคน/สถิติ · ใช้การ์ดกับคนนี้ไม่ได้ (การ์ดเก่าที่อ้างถึง = นับโควตาแต่ไม่มีผล)
     ignoreRunners: String(config.ignore_runners || "").split(",").map((s) => s.trim()).filter(Boolean),
     // โหมดลุ้น: เปิดตารางคะแนนเฉพาะวันที่ระบุ (เว้นว่าง = เปิดตลอดเวลาแบบเดิม)
     revealDates: String(config.reveal_dates || "").split(",").map((x) => x.trim()).filter(Boolean).sort(),
@@ -167,7 +168,7 @@ export function computeScores(data, today = todayIso()) {
   const runnerTeam = new Map(); // ชื่อ (lowercase) → team
   const runnerName = new Map(); // ชื่อ (lowercase) → ชื่อสะกดตามชีต teams
   for (const t of teams)
-    for (const m of t.members) {
+    for (const m of [...t.members, ...t.ignored]) { // คนที่ไม่นับยังกรอกได้ — ต้องรู้ว่าอยู่ทีมไหน
       const key = m.toLowerCase();
       if (runnerTeam.has(key)) warnings.push(`ชื่อ "${m}" ซ้ำอยู่ในสองทีม`);
       runnerTeam.set(key, t);
@@ -176,6 +177,7 @@ export function computeScores(data, today = todayIso()) {
 
   // --- อ่านรายการกิจกรรม ---
   const entries = [];
+  const ignoredEntries = []; // ผลของคนใน ignore_runners — โชว์ได้ แต่ไม่เข้าคะแนน/สถิติใด ๆ
   const taken = new Set(); // "runner|date" ที่นับไปแล้ว — 1 คน 1 กิจกรรม/วัน
   const ignoredSeen = new Set(); // ชื่อใน ignore_runners ที่เจอแถวในชีต (ไว้เช็กพิมพ์ผิด)
   data.runs.forEach((r, i) => {
@@ -183,8 +185,9 @@ export function computeScores(data, today = todayIso()) {
     if (!r.date && !r.runner && !r.amount) return;
     const date = normalizeDate(r.date);
     const key = (r.runner || "").trim().toLowerCase();
-    if (ignored.has(key)) return ignoredSeen.add(key); // ignore_runners — ไม่นับ ไม่เตือน
     const team = runnerTeam.get(key);
+    if (ignored.has(key)) ignoredSeen.add(key);
+    if (!team && ignored.has(key)) return; // ลบออกจากแท็บ teams แล้วแต่ยังมีแถวเก่า — ข้ามเงียบ ๆ
     const activity = normalizeActivity(r.activity);
     const amount = parseFloat(String(r.amount).replace(/,/g, ""));
     if (!date) return warnings.push(`แถว ${line}: อ่านวันที่ "${r.date}" ไม่ออก (ใช้ YYYY-MM-DD)`);
@@ -196,7 +199,9 @@ export function computeScores(data, today = todayIso()) {
     if (taken.has(dayKey)) return warnings.push(`แถว ${line}: ${runnerName.get(key)} ส่งวันที่ ${date} ไปแล้ว — 1 คน 1 กิจกรรม/วัน นับเฉพาะแถวแรก`);
     taken.add(dayKey);
     const hh = /(\d{1,2}):\d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
-    entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null });
+    const e = { line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null };
+    if (ignored.has(key)) ignoredEntries.push({ ...e, ignored: true });
+    else entries.push(e);
   });
   // ignore_runners ที่ไม่เจอทั้งในทีมและในผลวิ่ง = น่าจะพิมพ์ชื่อผิด
   for (const n of rules.ignoreRunners)
@@ -354,6 +359,22 @@ export function computeScores(data, today = todayIso()) {
     if (d.blockedBy || d.x2 || d.carriedIn || d.carriedOut) r.cardDays[d.date] = { blockedBy: d.blockedBy, x2: d.x2, carriedIn: d.carriedIn, carriedFrom: d.carriedFrom, carriedOut: d.carriedOut };
     for (const [a, v] of Object.entries(d.byActivity)) r.byActivity[a] = (r.byActivity[a] || 0) + v;
   }
+  // คนใน ignore_runners: สรุปแยก (ตัดเพดาน ไม่มีการ์ด) ไว้โชว์ในหน้าทีมเท่านั้น — ไม่อยู่ใน runners/อันดับใด ๆ
+  const ignoredRunners = new Map();
+  for (const t of teams)
+    for (const m of t.ignored)
+      ignoredRunners.set(m, { name: m, team: t, ignored: true, pts: 0, runKm: 0, daysActive: 0, fullDays: 0, byActivity: {}, days: {}, raw: {}, bonus: {}, blocked: {}, cardDays: {} });
+  for (const e of ignoredEntries) {
+    const r = ignoredRunners.get(e.runner);
+    const pts = Math.min(e.raw, rules.dailyCap); // 1 คน 1 รายการ/วัน — ไม่ต้องรวมต่อวัน
+    r.pts += pts;
+    r.runKm += e.activity === "run" || e.activity === "treadmill" ? e.amount : 0;
+    if (e.raw > 0) r.daysActive++;
+    if (pts >= rules.dailyCap) r.fullDays++;
+    r.days[e.date] = pts;
+    r.raw[e.date] = e.raw;
+    r.byActivity[e.activity] = (r.byActivity[e.activity] || 0) + e.amount;
+  }
 
   // --- สรุปต่อทีม + ซีรีส์รายวัน ---
   const lastEntryDate = entries.reduce((m, e) => (e.date > m ? e.date : m), "");
@@ -377,6 +398,7 @@ export function computeScores(data, today = todayIso()) {
     return {
       ...t,
       runners: [...rs].sort((a, b) => b.pts - a.pts),
+      ignoredRunners: t.ignored.map((m) => ignoredRunners.get(m)), // โชว์ท้ายรายชื่อ ป้าย "ไม่นับ"
       rawPts: rs.reduce((s, r) => s + r.pts, 0), // ผลรวมจริงของสมาชิก (ก่อนเฉลี่ย)
       pts: daily.reduce((s, v) => s + v, 0),
       activeMembers: rs.filter((r) => r.daysActive > 0).length,
@@ -487,6 +509,7 @@ export function computeScores(data, today = todayIso()) {
     // คะแนนเท่ากัน (ปัด 2 ตำแหน่งเหมือนที่แสดง) → ระยะวิ่งจริงมากกว่าขึ้นก่อน — ใช้ตัดสิน MVP
     runners: [...runners.values()].sort((a, b) => r2(b.pts) - r2(a.pts) || b.runKm - a.runKm),
     entries: entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line)),
+    ignoredEntries: ignoredEntries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line)),
     days,
     totalDays,
     daysElapsed: days.length,
