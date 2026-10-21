@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvelymwg";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvelymwg";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvelymwg";
-import { USE_SAMPLE } from "./config.js?v=mvelymwg";
+import { loadAll } from "./sheets.js?v=mvhhqj15";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvhhqj15";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvhhqj15";
+import { USE_SAMPLE } from "./config.js?v=mvhhqj15";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -118,7 +118,7 @@ function render(loadedAt) {
   renderBoard(teams, rules);
   renderWeekCards(teams);
   renderTopRunners(state.runners);
-  renderRules(rules);
+  renderRules(rules, teams);
   renderDaily(teams, days);
   if (!selectedTeam || !teams.some((t) => t.id === selectedTeam)) selectedTeam = teams[0]?.id;
   renderTeamChips(teams);
@@ -401,27 +401,34 @@ function countUp(ms = 900) {
   requestAnimationFrame(step);
 }
 
-function renderRules(r) {
+function renderRules(r, teams) {
+  // ขนาดทีมที่ไม่เท่า team_size (เช่น 4 / 6) · คนที่ไม่นับคะแนน (ignore_runners ในชีต config)
+  const sizes = [...new Set(teams.map((t) => t.members.length))].filter((n) => n > 0 && n !== r.teamSize).sort((a, b) => a - b);
+  const ignoredList = teams.filter((t) => t.ignored.length).map((t) => `${t.ignored.map(esc).join(", ")} (ทีม ${esc(t.id)})`).join(" · ");
   $("rules").innerHTML = `
     <li>วิ่งสวน / วิ่งลู่ <b>1 กม. = ${fmtPts(r.pointsPerRunKm)} คะแนน</b></li>
     <li>เดิน <b>${fmtNum(r.walkStepsForFull)} ก้าว = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>ปั่นจักรยาน <b>${fmtNum(r.bikeKmForFull)} กม. = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน)</li>
     <li>🏸 แบด · 🎾 เทนนิส · ⚽ ฟุตบอล · 🏊 ว่ายน้ำ · 🏀 บาส · 🏋️ ฟิตเนส · 🧘 โยคะ · 🪢 กระโดดเชือก <b>${fmtNum(r.sportMinutesForFull)} นาที = ${fmtPts(r.dailyCap)} คะแนน</b> (คิดตามสัดส่วน · ต่ำกว่า ${fmtNum(r.sportMinMinutes)} นาทีไม่นับ)</li>
     <li><b>1 คน ส่งได้ 1 กิจกรรม/วัน</b> · ไม่เกิน <b>${fmtPts(r.dailyCap)} คะแนน/คน/วัน</b></li>
-    <li><b>คะแนนทีม = ผลรวมคะแนนของสมาชิก</b> · ทีม 6 คนคิดเป็นสัดส่วน ×${fmtNum(r.teamSize)}/6 ให้เทียบเท่าทีม ${fmtNum(r.teamSize)} คน (เต็มวันละ ${fmtPts(r.teamSize * r.dailyCap)} เท่ากันทุกทีม)</li>
+    <li><b>คะแนนทีม = ผลรวมคะแนนของสมาชิก</b>${sizes.length ? ` · ${sizes.map((n) => `ทีม ${n} คน ×${fmtNum(r.teamSize)}/${n}`).join(" · ")} ให้เทียบเท่าทีม ${fmtNum(r.teamSize)} คน` : ""} (เต็มวันละ ${fmtPts(r.teamSize * r.dailyCap)} เท่ากันทุกทีม)${ignoredList ? `<br><small>ไม่นับคะแนน: ${ignoredList}</small>` : ""}</li>
     <li><b>การ์ดให้ผลเท่ากันทุกทีม</b> ไม่คิดสัดส่วน — x2 เต็ม ทีม +${fmtPts(r.dailyCap)} · โดน block คนที่ได้ ${fmtPts(r.dailyCap)} ทีม −${fmtPts(r.dailyCap)}</li>
     <li>วิ่งลู่ถ่ายรูปคู่ลู่ให้เห็นระยะ · วิ่งสวนส่งผลจากแอป</li>`;
-  // ทีม 5 vs 6 คน — ตัวอย่างให้เห็นว่ายุติธรรม
-  const ts = r.teamSize, cap = r.dailyCap, p = fmtPts, six = (sum) => `${p(sum)} × ${fmtNum(ts)}/6 = <b>${p((sum * ts) / 6)}</b>`;
-  $("team-size-rules").innerHTML = `<div class="ex-h">👥 ทีม ${fmtNum(ts)} คน กับ 6 คน คิดยังไง</div>
-    <p class="rules-lead">ทีม 6 คนมีคนมากกว่า ถ้ารวมตรง ๆ จะได้เปรียบ จึงคิดคะแนนปกติเป็นสัดส่วน ×${fmtNum(ts)}/6 ให้เทียบเท่าทีม ${fmtNum(ts)} คน — <b>ทำได้เท่ากันต่อคน = คะแนนทีมเท่ากัน</b> · ส่วนการ์ดทุกทีมได้ 3 ใบเท่ากัน จึง<b>ให้ผลเท่ากัน ไม่คิดสัดส่วน</b></p>
-    <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>ทีม ${fmtNum(ts)} คน · ทีม 6 คน</th></tr></thead><tbody>
-      <tr><td>ทุกคนได้ ${p(cap)}</td><td><b>${p(ts * cap)}</b> · ${six(6 * cap)} ✅</td></tr>
-      <tr><td>ทุกคนได้ 3</td><td><b>${p(ts * 3)}</b> · ${six(18)} ✅</td></tr>
-      <tr><td>ขาด 1 คน (ที่เหลือได้ ${p(cap)})</td><td><b>${p((ts - 1) * cap)}</b> · ${six(5 * cap)}<br><small>คนหนึ่งในทีม 6 คนมีน้ำหนักน้อยกว่านิดหน่อย</small></td></tr>
-      <tr><td>✖️2 เต็ม (คนนั้นได้ ${p(cap * 2)})</td><td>ทีม <b>+${p(cap)}</b> เท่ากันทั้งคู่</td></tr>
-      <tr><td>🎒 เดอะแบก ผู้รับ 2 → ${p(cap)}</td><td>ทีม <b>+${p(cap - 2)}</b> เท่ากันทั้งคู่</td></tr>
-      <tr><td>🛡️ โดน block คนที่ได้ ${p(cap)}</td><td>ทีม <b>−${p(cap)}</b> เท่ากันทั้งคู่</td></tr>
+  // ทีมที่คนไม่เท่า team_size (เช่น 4 / 6 คน) — ตัวอย่างให้เห็นว่ายุติธรรม · ทุกทีมเท่ากันหมด = ไม่ต้องโชว์
+  const ts = r.teamSize, cap = r.dailyCap, p = fmtPts;
+  $("team-size-rules").hidden = !sizes.length;
+  const scaled = (n, sum) => `${p(sum)} × ${fmtNum(ts)}/${n} = <b>${p((sum * ts) / n)}</b>`;
+  const cols = (fn) => [`<b>${p(fn(ts))}</b>`, ...sizes.map((n) => scaled(n, fn(n)))].join(" · ");
+  const same = sizes.length > 1 ? "เท่ากันทุกทีม" : "เท่ากันทั้งคู่";
+  $("team-size-rules").innerHTML = !sizes.length ? "" : `<div class="ex-h">👥 ทีม ${fmtNum(ts)} คน กับ ${sizes.join(" / ")} คน คิดยังไง</div>
+    <p class="rules-lead">ทีมที่คนไม่เท่ากัน ถ้ารวมตรง ๆ ทีมใหญ่จะได้เปรียบ จึงคิดคะแนนปกติเป็นสัดส่วน ×${fmtNum(ts)}/จำนวนคน ให้เทียบเท่าทีม ${fmtNum(ts)} คน — <b>ทำได้เท่ากันต่อคน = คะแนนทีมเท่ากัน</b> · ส่วนการ์ดทุกทีมได้ 3 ใบเท่ากัน จึง<b>ให้ผลเท่ากัน ไม่คิดสัดส่วน</b></p>
+    <table class="ex-table"><thead><tr><th>สถานการณ์</th><th>${[ts, ...sizes].map((n) => `ทีม ${n} คน`).join(" · ")}</th></tr></thead><tbody>
+      <tr><td>ทุกคนได้ ${p(cap)}</td><td>${cols((n) => n * cap)} ✅</td></tr>
+      <tr><td>ทุกคนได้ 3</td><td>${cols((n) => n * 3)} ✅</td></tr>
+      <tr><td>ขาด 1 คน (ที่เหลือได้ ${p(cap)})</td><td>${cols((n) => (n - 1) * cap)}<br><small>ทีมยิ่งเล็ก คนหนึ่งยิ่งมีน้ำหนักมาก (${[ts, ...sizes].map((n) => `ทีม ${n} คน คนละ ${p((ts * cap) / n)}`).join(" · ")})</small></td></tr>
+      <tr><td>✖️2 เต็ม (คนนั้นได้ ${p(cap * 2)})</td><td>ทีม <b>+${p(cap)}</b> ${same}</td></tr>
+      <tr><td>🎒 เดอะแบก ผู้รับ 2 → ${p(cap)}</td><td>ทีม <b>+${p(cap - 2)}</b> ${same}</td></tr>
+      <tr><td>🛡️ โดน block คนที่ได้ ${p(cap)}</td><td>ทีม <b>−${p(cap)}</b> ${same}</td></tr>
     </tbody></table>`;
   $("badges-rules").innerHTML = Object.values(BADGES).map((b) => `<li><b>${b.label}</b> — ${b.title}</li>`).join("");
 }
@@ -429,9 +436,10 @@ function renderRules(r) {
 // ── รายวัน ─────────────────────────────────────────────────────────
 // ข้อความอธิบายการ์ด 1 ใบ เช่น "🎒 Jay → Bird +5"
 function cardTitle(c) {
-  if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : c.giverBlocked ? " (ผู้ให้โดน block)" : " (ไม่มีส่วนเกิน)"}`;
-  if (c.card === "x2") return `✖️2 ${c.runner}`;
-  return c.revealed ? `🛡️ block ${c.target} (${c.targetTeam.id})` : "🛡️ block — เฉลยพรุ่งนี้";
+  if (c.card === "carry") return `🎒 ${c.runner} → ${c.target}${c.amount ? ` +${fmtPts(c.amount)}` : c.void ? ` · ${c.void} ไม่นับคะแนน` : c.giverBlocked ? " (ผู้ให้โดน block)" : " (ไม่มีส่วนเกิน)"}`;
+  const v = c.void ? " · ไม่นับคะแนน" : ""; // ignore_runners — การ์ดใช้ไปแล้วแต่ไม่มีผล
+  if (c.card === "x2") return `✖️2 ${c.runner}${v}`;
+  return c.revealed ? `🛡️ block ${c.target} (${c.targetTeam.id})${v}` : "🛡️ block — เฉลยพรุ่งนี้";
 }
 
 function renderDaySummary(teams, days) {
@@ -569,7 +577,7 @@ function renderTeam(t) {
     <div class="card" style="--team:${esc(t.color)}">
       <div class="team-head">
         <div class="badge">${esc(t.id)}</div>
-        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน · วันนี้ส่งแล้ว ${t.runners.filter((r) => (r.raw[today] || 0) > 0).length}/${t.members.length} คน · ${t.entries} รายการ</small></div>
+        <div><h2 style="margin:0">${esc(t.name)}</h2><small style="color:var(--muted)">อันดับ ${t.rank} · สมาชิก ${t.members.length} คน${t.ignored.length ? ` (ไม่นับ ${t.ignored.map(esc).join(", ")})` : ""} · วันนี้ส่งแล้ว ${t.runners.filter((r) => (r.raw[today] || 0) > 0).length}/${t.members.length} คน · ${t.entries} รายการ</small></div>
         <div class="pts"><b>${fmtPts(t.pts)}</b><small>${t.members.length !== rules.teamSize ? `รวมจริง <span class="nowrap">${fmtPts(t.rawPts)}</span><br><span class="nowrap">เทียบทีม ${fmtNum(rules.teamSize)} คน</span>` : "คะแนน"}</small></div>
       </div>
       <div class="stat-row">

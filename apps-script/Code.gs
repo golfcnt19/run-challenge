@@ -89,7 +89,8 @@ function authTeam_(b) {
 // ลบรายการที่ตรงกับ date + runner + activity + amount (ถ้าซ้ำหลายแถว ลบแถวล่างสุด)
 function deleteEntry_(b) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const auth = authorize_(b, readTeams_(ss));
+  const config = readConfig_(ss);
+  const auth = authorize_(b, readTeams_(ss, config));
   if (auth.error) return { ok: false, error: auth.error, code: auth.code };
 
   const date = normalizeDate_(b.date);
@@ -97,7 +98,7 @@ function deleteEntry_(b) {
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!date || !activity || !isFinite(amount)) return { ok: false, error: "ข้อมูลรายการไม่ครบ" };
   const todayDel = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
-  const oldestDel = oldestAllowed_(readConfig_(ss), todayDel);
+  const oldestDel = oldestAllowed_(config, todayDel);
   if (!auth.isAdmin && date < oldestDel) return { ok: false, error: "ลบได้เฉพาะรายการตั้งแต่วันที่ " + oldestDel + " เป็นต้นมา — เก่ากว่านั้นให้แจ้งแอดมิน", code: "PAST" };
 
   const sh = ss.getSheetByName(SHEET_RUNS);
@@ -120,8 +121,8 @@ function deleteEntry_(b) {
 
 function addEntry_(b) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const teams = readTeams_(ss);
   const config = readConfig_(ss);
+  const teams = readTeams_(ss, config);
 
   const auth = authorize_(b, teams);
   if (auth.error) return { ok: false, error: auth.error, code: auth.code };
@@ -182,8 +183,8 @@ function addEntry_(b) {
 //   block: target_team + target_runner (ทีมอื่น)
 function useCard_(b) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const teams = readTeams_(ss);
   const config = readConfig_(ss);
+  const teams = readTeams_(ss, config);
 
   const teamId = String(b.team_id || "").trim().toUpperCase();
   const pin = String(b.pin || "").trim();
@@ -282,9 +283,11 @@ function ensureHeaders_(sh) {
   });
 }
 
-function readTeams_(ss) {
+// config ใส่ไว้ = ตัดคนใน ignore_runners ออกจาก members (กรอกแทนไม่ได้ · x2 ไม่สุ่มโดน · เลือกในการ์ดไม่ได้) — ตรงกับ js/scoring.js
+function readTeams_(ss, config) {
   const sh = ss.getSheetByName(SHEET_TEAMS);
   if (!sh) throw new Error("ไม่พบแท็บ " + SHEET_TEAMS);
+  const ignore = String((config && config.ignore_runners) || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const rows = sh.getDataRange().getValues();
   const head = rows[0].map((h) => String(h).trim().toLowerCase());
   const iId = head.indexOf("team_id"), iM = head.indexOf("members");
@@ -292,7 +295,7 @@ function readTeams_(ss) {
   rows.slice(1).forEach((r) => {
     const id = String(r[iId] || "").trim().toUpperCase();
     if (!id) return;
-    out[id] = { members: String(r[iM] || "").split(",").map((s) => s.trim()).filter(Boolean) };
+    out[id] = { members: String(r[iM] || "").split(",").map((s) => s.trim()).filter((m) => m && ignore.indexOf(m.toLowerCase()) < 0) };
   });
   return out;
 }

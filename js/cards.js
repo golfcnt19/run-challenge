@@ -1,10 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvelymwg";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvelymwg";
-import { fmtDateLong } from "./format.js?v=mvelymwg";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mvelymwg";
-import { verifyTeamPin } from "./auth.js?v=mvelymwg";
-import { ENTRY_URL } from "./config.js?v=mvelymwg";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvhhqj15";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvhhqj15";
+import { fmtDateLong } from "./format.js?v=mvhhqj15";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mvhhqj15";
+import { verifyTeamPin } from "./auth.js?v=mvhhqj15";
+import { ENTRY_URL } from "./config.js?v=mvhhqj15";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -138,7 +138,7 @@ function renderRules(r) {
     <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
     <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
     <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง (x2 ไม่มีผล · รับเดอะแบกไม่ได้ · <b>โอนเดอะแบกให้คนอื่นก็ไม่ได้</b>) · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>
-    <li>👥 การ์ดให้ผล<b>เท่ากันทุกทีม</b> ทั้งทีม 5 และ 6 คน (ไม่คิดสัดส่วน) — x2 เต็ม ทีม +${fmtPts(r.dailyCap)} · โดน block คนที่ได้ ${fmtPts(r.dailyCap)} ทีม −${fmtPts(r.dailyCap)}</li>`;
+    <li>👥 การ์ดให้ผล<b>เท่ากันทุกทีม</b> ไม่ว่าทีมจะมีกี่คน (ไม่คิดสัดส่วน) — x2 เต็ม ทีม +${fmtPts(r.dailyCap)} · โดน block คนที่ได้ ${fmtPts(r.dailyCap)} ทีม −${fmtPts(r.dailyCap)}</li>`;
   const cap = r.dailyCap, p = fmtPts;
   $("cards-examples").innerHTML = `
     <div class="ex"><div class="ex-h">🎒 เดอะแบก</div>

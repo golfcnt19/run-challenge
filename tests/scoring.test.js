@@ -239,6 +239,55 @@ test("MVP: คะแนนเสมอ → ระยะวิ่งจริง�
   assert.deepEqual(res.runners.slice(0, 3).map((r) => r.name), ["b1", "a1", "c1"]);
 });
 
+// ── ignore_runners: ตัดคนออกจากทีม (ทีมเล็กลง คิดสัดส่วนใหม่) ─────────
+const scoreCfg = (cfg, { runs = [], cards = [], today = "2026-10-20" } = {}) => computeScores({ config: { ...CONFIG, ...cfg }, teams: TEAMS, runs, cards }, today);
+
+test("ignore_runners: ทีม 6 คนตัด 1 คน → คิดแบบทีม 5 คน · แถวของคนนั้นข้ามเงียบ ๆ", () => {
+  const runs = [...runAll(D, A, 5), ...runAll(D, G, 5)];
+  eq(day(score({ runs: [...runAll(D, A, 5), ...runAll(D, G.slice(0, 5), 5)] }), "G", D), 25 * 5 / 6, "ไม่ตัด g6 แต่ g6 ไม่ส่ง");
+  const res = scoreCfg({ ignore_runners: "G6" }, { runs }); // ตัวพิมพ์ไม่สำคัญ
+  const g = res.teams.find((t) => t.id === "G");
+  assert.deepEqual(g.members, G.slice(0, 5));
+  assert.deepEqual(g.ignored, ["g6"]);
+  eq(day(res, "G", D), 25, "G");
+  eq(day(res, "A", D), 25, "A");
+  assert.equal(res.warnings.length, 0, res.warnings.join(" | "));
+  assert.equal(res.runners.some((r) => r.name === "g6"), false);
+});
+
+test("ignore_runners: ทีม 5 คนตัด 1 คน → ทีม 4 คน ×5/4 · การ์ดยังเท่ากันทุกทีม", () => {
+  const cfg = { ignore_runners: "a5" };
+  const all = [...runAll(D, A, 5), ...runAll(D, B, 5)];
+  eq(day(scoreCfg(cfg, { runs: all }), "A", D), 25, "ทุกคนได้ 5");
+  eq(day(scoreCfg(cfg, { runs: [...runAll(D, A, 3), ...runAll(D, B, 3)] }), "A", D), 15, "ทุกคนได้ 3");
+  eq(day(scoreCfg(cfg, { runs: runAll(D, A.slice(1), 5) }), "A", D), 18.75, "ขาด 1 คน (3 × 5 × 5/4)");
+  const x = scoreCfg(cfg, { runs: all, cards: [x2(D, "A", "a1"), x2(D, "B", "b1")] });
+  eq(day(x, "A", D), 30, "x2 ทีม 4 คน"); eq(day(x, "B", D), 30, "x2 ทีม 5 คน");
+  const b = scoreCfg(cfg, { runs: all, cards: [block(D, "B", "A", "a1"), block(D, "A", "B", "b1")] });
+  eq(day(b, "A", D), 20, "block ทีม 4 คน"); eq(day(b, "B", D), 20, "block ทีม 5 คน");
+});
+
+test("ignore_runners: การ์ดที่อ้างถึงคนที่ไม่นับ → นับโควตาแต่ไม่มีผล", () => {
+  const D2 = "2026-10-07";
+  const cfg = { ignore_runners: "g6" };
+  const runs = [...runAll(D, G, 5), ...runAll(D, A, 5)];
+  const cards = [x2(D, "G", "g6"), x2(D2, "G", "g1"), block(D, "A", "G", "g6")];
+  const res = scoreCfg(cfg, { runs, cards });
+  const c = res.cards.find((x) => x.card === "x2" && x.team.id === "G");
+  assert.equal(c.void, "g6"); eq(c.effect, 0);
+  assert.match(c.detail, /g6 ไม่นับคะแนน/);
+  assert.ok(res.warnings.some((w) => w.includes("ชนิดละ 1 ใบ/วีค")), "x2 ใบที่สองในวีคยังโดนโควตา");
+  eq(res.cards.find((x) => x.card === "block").effect, 0, "block คนที่ไม่นับ = เสียเปล่า");
+  eq(day(res, "G", D), 25); eq(day(res, "A", D), 25);
+  // block ที่ยังไม่เฉลย → ยังไม่บอกอะไร
+  assert.equal(scoreCfg(cfg, { runs, cards, today: D }).cards.find((x) => x.card === "block").effect, null);
+});
+
+test("ignore_runners: ชื่อที่ไม่เจอที่ไหนเลย → เตือน · ลบออกจากแท็บ teams แล้วแต่ยังมีแถวเก่า → ไม่เตือน", () => {
+  assert.ok(scoreCfg({ ignore_runners: "zzz" }).warnings.some((w) => w.includes('"zzz"')));
+  assert.equal(scoreCfg({ ignore_runners: "ghost" }, { runs: [row(D, "ghost", "walk", 5000)] }).warnings.length, 0);
+});
+
 // ── ล็อกตารางคะแนน (board_pin + reveal_dates) ──────────────────
 test("ไม่ตั้ง board_pin = ใครก็ดูตารางคะแนนได้", () => {
   const r = readRules(CONFIG);

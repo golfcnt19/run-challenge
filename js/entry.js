@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvelymwg";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvelymwg";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvelymwg";
-import { verifyTeamPin } from "./auth.js?v=mvelymwg";
-import { ENTRY_URL } from "./config.js?v=mvelymwg";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvhhqj15";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvhhqj15";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvhhqj15";
+import { verifyTeamPin } from "./auth.js?v=mvhhqj15";
+import { ENTRY_URL } from "./config.js?v=mvhhqj15";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

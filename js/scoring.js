@@ -6,10 +6,10 @@
 //   ปั่นจักรยาน         bike_km_for_full กม.   = เต็มวัน (daily_cap)  คิดตามสัดส่วน
 //   กีฬาที่นับเวลา (แบด เทนนิส ฟุตบอล ว่ายน้ำ บาส ฟิตเนส โยคะ กระโดดเชือก)  sport_minutes_for_full นาที = เต็มวัน  ต่ำกว่า sport_min_minutes ไม่นับ
 //   1 คน ส่งได้ 1 กิจกรรมต่อวัน (ถ้าชีตมีหลายแถว นับแถวแรกเท่านั้น) · ไม่เกิน daily_cap ต่อคนต่อวัน
-//   คะแนนทีม = เทียบเป็นทีม team_size (5) คน = ผลรวมคะแนนปกติของสมาชิก × 5 ÷ จำนวนสมาชิก
-//              ทีม 5 คน = ผลรวมตรง ๆ · ทีม 6 คน ×5/6 → เต็มวันละ 25 ทุกทีม
+//   คะแนนทีม = เทียบเป็นทีม team_size (5) คน = ผลรวมคะแนนปกติของสมาชิก × 5 ÷ จำนวนสมาชิก (ไม่รวมคนใน ignore_runners)
+//              ทีม 5 คน = ผลรวมตรง ๆ · ทีม 6 คน ×5/6 · ทีม 4 คน ×5/4 → เต็มวันละ 25 ทุกทีม
 //              ผลของการ์ดทุกใบต่อทีม = คะแนนที่เปลี่ยนของคนนั้น เท่ากันทุกทีม (ไม่คิดสัดส่วน)
-//              (x2 เต็ม +5 · เดอะแบก +3 → +3 · block คนที่ได้ 5 → −5) — ทีม 5 กับ 6 คนใช้การ์ดได้ผลเท่ากัน
+//              (x2 เต็ม +5 · เดอะแบก +3 → +3 · block คนที่ได้ 5 → −5) — ทุกขนาดทีมใช้การ์ดได้ผลเท่ากัน
 //
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvelymwg";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvhhqj15";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -96,6 +96,8 @@ export function readRules(config) {
     sportMinMinutes: num("sport_min_minutes", 15),
     backfillDays: num("backfill_days", 1), // ย้อนหลังได้กี่วัน (0 = วันนี้เท่านั้น)
     teamSize: num("team_size", 5), // ขนาดทีมมาตรฐาน — ทีมที่คนไม่เท่านี้คิดสัดส่วน
+    // คนที่ไม่นับคะแนน (คั่นด้วย ,) — ตัดออกจากทีมทั้งงาน ทีมเล็กลงแล้วคิดสัดส่วนใหม่ · แถวของคนนี้ข้ามเงียบ ๆ
+    ignoreRunners: String(config.ignore_runners || "").split(",").map((s) => s.trim()).filter(Boolean),
     // โหมดลุ้น: เปิดตารางคะแนนเฉพาะวันที่ระบุ (เว้นว่าง = เปิดตลอดเวลาแบบเดิม)
     revealDates: String(config.reveal_dates || "").split(",").map((x) => x.trim()).filter(Boolean).sort(),
     boardPin: String(config.board_pin || "").trim(), // รหัสเปิดดูตารางคะแนน (เว้นว่าง = ใครก็ดูได้)
@@ -148,15 +150,20 @@ export function computeScores(data, today = todayIso()) {
   const rules = readRules(data.config);
   const warnings = [];
 
-  // --- ทีมและสมาชิก ---
+  // --- ทีมและสมาชิก --- (คนใน ignore_runners ไม่อยู่ใน members → ไม่นับเป็นคนในทีม)
+  const ignored = new Set(rules.ignoreRunners.map((n) => n.toLowerCase()));
   const teams = data.teams
     .filter((t) => t.team_id)
-    .map((t) => ({
-      id: t.team_id,
-      name: t.team_name || t.team_id,
-      color: t.color || "#888",
-      members: (t.members || "").split(",").map((s) => s.trim()).filter(Boolean),
-    }));
+    .map((t) => {
+      const all = (t.members || "").split(",").map((s) => s.trim()).filter(Boolean);
+      return {
+        id: t.team_id,
+        name: t.team_name || t.team_id,
+        color: t.color || "#888",
+        members: all.filter((m) => !ignored.has(m.toLowerCase())),
+        ignored: all.filter((m) => ignored.has(m.toLowerCase())),
+      };
+    });
   const runnerTeam = new Map(); // ชื่อ (lowercase) → team
   const runnerName = new Map(); // ชื่อ (lowercase) → ชื่อสะกดตามชีต teams
   for (const t of teams)
@@ -170,11 +177,13 @@ export function computeScores(data, today = todayIso()) {
   // --- อ่านรายการกิจกรรม ---
   const entries = [];
   const taken = new Set(); // "runner|date" ที่นับไปแล้ว — 1 คน 1 กิจกรรม/วัน
+  const ignoredSeen = new Set(); // ชื่อใน ignore_runners ที่เจอแถวในชีต (ไว้เช็กพิมพ์ผิด)
   data.runs.forEach((r, i) => {
     const line = i + 2; // แถวในชีต (มี header)
     if (!r.date && !r.runner && !r.amount) return;
     const date = normalizeDate(r.date);
     const key = (r.runner || "").trim().toLowerCase();
+    if (ignored.has(key)) return ignoredSeen.add(key); // ignore_runners — ไม่นับ ไม่เตือน
     const team = runnerTeam.get(key);
     const activity = normalizeActivity(r.activity);
     const amount = parseFloat(String(r.amount).replace(/,/g, ""));
@@ -189,6 +198,10 @@ export function computeScores(data, today = todayIso()) {
     const hh = /(\d{1,2}):\d{2}/.exec(r.submitted_at || ""); // ชั่วโมงที่กรอก (ถ้ามี)
     entries.push({ line, date, runner: runnerName.get(key), team, activity, amount, note: r.note || "", raw: rawPoints(activity, amount, rules), hour: hh ? +hh[1] : null });
   });
+  // ignore_runners ที่ไม่เจอทั้งในทีมและในผลวิ่ง = น่าจะพิมพ์ชื่อผิด
+  for (const n of rules.ignoreRunners)
+    if (!teams.some((t) => t.ignored.some((m) => m.toLowerCase() === n.toLowerCase())) && !ignoredSeen.has(n.toLowerCase()))
+      warnings.push(`ignore_runners: ไม่พบชื่อ "${n}" ในทีมไหนเลย (พิมพ์ผิดหรือเปล่า)`);
 
   // --- รวมต่อคนต่อวัน แล้วตัดเพดาน ---
   const perRunnerDay = new Map(); // "runner|date" → { raw, pts, byActivity }
@@ -215,17 +228,25 @@ export function computeScores(data, today = todayIso()) {
     if (!CARDS[card]) return warnings.push(`cards แถว ${line}: ไม่รู้จักการ์ด "${r.card}"`);
     if (date < rules.startDate || date > rules.endDate) return warnings.push(`cards แถว ${line}: วันที่ ${date} อยู่นอกช่วง (ไม่นับ)`);
     const c = { line, date, team, card, week: weekKey(date), revealed: true };
+    // ชื่อที่อยู่ใน ignore_runners → การ์ดยังนับว่าใช้แล้ว (โควตา) แต่ไม่มีผล (c.void = ชื่อนั้น)
+    const pick = (tm, name) => {
+      const m = findMember(tm, name);
+      if (m) return m;
+      const n = String(name || "").trim();
+      if (!ignored.has(n.toLowerCase())) return undefined;
+      return (c.void = tm.ignored.find((x) => x.toLowerCase() === n.toLowerCase()) || n);
+    };
     if (card === "carry") {
-      c.runner = findMember(team, r.runner);
-      c.target = findMember(team, r.target_runner);
+      c.runner = pick(team, r.runner);
+      c.target = pick(team, r.target_runner);
       if (!c.runner || !c.target) return warnings.push(`cards แถว ${line}: เดอะแบก ต้องมีผู้ให้และผู้รับในทีม ${team.id}`);
       if (c.runner === c.target) return warnings.push(`cards แถว ${line}: เดอะแบก ผู้ให้กับผู้รับเป็นคนเดียวกัน`);
     } else if (card === "x2") {
-      c.runner = findMember(team, r.runner);
+      c.runner = pick(team, r.runner);
       if (!c.runner) return warnings.push(`cards แถว ${line}: x2 ไม่พบชื่อ "${r.runner}" ในทีม ${team.id}`);
     } else {
       c.targetTeam = teamById.get(String(r.target_team || "").trim().toUpperCase());
-      c.target = c.targetTeam && findMember(c.targetTeam, r.target_runner);
+      c.target = c.targetTeam && pick(c.targetTeam, r.target_runner);
       if (!c.targetTeam || !c.target) return warnings.push(`cards แถว ${line}: block ไม่พบ "${r.target_runner}" ในทีม "${r.target_team}"`);
       if (c.targetTeam.id === team.id) return warnings.push(`cards แถว ${line}: block ทีมตัวเองไม่ได้`);
       c.revealed = date < today; // เฉลยหลังจบวัน
@@ -245,7 +266,7 @@ export function computeScores(data, today = todayIso()) {
   };
   // block (ที่เฉลยแล้ว) ชนะทุกอย่าง · นับเฉพาะใบแรกของคนนั้นในวีค (เรียงวันที่ แล้วตามแถว)
   const firstBlock = new Map(); // "ชื่อ|วีค" → การ์ดใบแรก
-  const blocks = cards.filter((c) => c.card === "block" && c.revealed).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.line - b.line));
+  const blocks = cards.filter((c) => c.card === "block" && c.revealed && !c.void).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.line - b.line));
   for (const c of blocks) {
     const k = `${c.target}|${c.week}`;
     if (firstBlock.has(k)) { c.dupOf = firstBlock.get(k); continue; }
@@ -254,7 +275,7 @@ export function computeScores(data, today = todayIso()) {
     (d.blockedBy ||= []).push(c.team);
   }
   // carry: โอนส่วนเกินเพดาน สูงสุด = เพดาน · ผู้ให้โดน block (ที่เฉลยแล้ว) → โอนไม่ได้
-  for (const c of cards) if (c.card === "carry") {
+  for (const c of cards) if (c.card === "carry" && !c.void) {
     const g = dayOf(c.runner, c.date), t = dayOf(c.target, c.date);
     c.giverBlocked = Boolean(g.blockedBy);
     const give = c.giverBlocked ? 0 : Math.min(Math.max(g.raw - rules.dailyCap, 0), rules.dailyCap);
@@ -262,7 +283,7 @@ export function computeScores(data, today = todayIso()) {
     if (give > 0) { g.carriedOut = (g.carriedOut || 0) + give; t.carriedIn = (t.carriedIn || 0) + give; t.carriedFrom = c.runner; }
   }
   // x2
-  for (const c of cards) if (c.card === "x2") dayOf(c.runner, c.date).x2 = true;
+  for (const c of cards) if (c.card === "x2" && !c.void) dayOf(c.runner, c.date).x2 = true;
   // ตัดเพดาน (คำนวณสุทธิต่อคนต่อวัน)
   for (const d of perRunnerDay.values()) {
     const base = d.raw + (d.carriedIn || 0);
@@ -275,7 +296,10 @@ export function computeScores(data, today = todayIso()) {
   const cap = rules.dailyCap;
   const r2 = (n) => Math.round(n * 100) / 100;
   for (const c of cards) {
-    if (c.card === "carry") {
+    if (c.void && (c.card !== "block" || c.revealed)) { // block ที่ยังไม่เฉลยไปตกกรณี "เฉลยพรุ่งนี้" ด้านล่าง
+      c.amount = 0; c.personDelta = 0; c.effect = 0;
+      c.detail = `${c.void} ไม่นับคะแนน`;
+    } else if (c.card === "carry") {
       const t = dayOf(c.target, c.date);
       const withoutIn = t.blockedBy ? 0 : Math.min(t.raw, cap);
       c.personDelta = t.pts - withoutIn; // ที่ผู้รับได้เพิ่มจริง (0 ถ้าผู้รับเต็มอยู่แล้ว/โดน block)
@@ -337,7 +361,7 @@ export function computeScores(data, today = todayIso()) {
   const teamStats = teams.map((t) => {
     const rs = t.members.map((m) => runners.get(m));
     const n = Math.max(1, t.members.length);
-    const k = rules.teamSize / n; // ทีม 5 คน = 1 · ทีม 6 คน = 5/6
+    const k = rules.teamSize / n; // ทีม 5 คน = 1 · ทีม 6 คน = 5/6 · ทีม 4 คน = 5/4
     // คะแนนปกติคิดสัดส่วน × k · ผลการ์ดนับเต็มเท่ากันทุกทีม:
     //   ปกติ      → (คะแนน − โบนัส) × k + โบนัส
     //   โดน block → (ที่จะได้ถ้าไม่โดน) − คะแนนที่ถูกตัดเต็ม = คะแนนปกติ × (k − 1)
@@ -429,7 +453,7 @@ export function computeScores(data, today = todayIso()) {
   pickMax("night", (t) => { const es = teamEntries(t).filter((e) => e.hour !== null); return es.length >= 10 ? es.filter((e) => e.hour >= 21).length / es.length : -1; }, 0.3);
   pickMax("stage", (t) => t.stageWins, 2);
   pickMax("sharp", (t) => { const used = cards.filter((c) => c.team.id === t.id && c.effect !== null); return used.length >= 2 && used.every((c) => c.effect !== 0) ? used.length : -1; }, 2);
-  pickMax("blocked", (t) => cards.filter((c) => c.card === "block" && c.revealed && c.targetTeam.id === t.id && !c.stacked).length, 2);
+  pickMax("blocked", (t) => cards.filter((c) => c.card === "block" && c.revealed && c.targetTeam.id === t.id && !c.stacked && !c.void).length, 2);
   pickMax("steady", (t) => days.length >= 5 ? t.runners.filter((r) => r.daysActive >= days.length * 0.8).length / t.members.length : -1, 0.6);
   for (const t of teamStats) t.badges = badges[t.id] || [];
 
