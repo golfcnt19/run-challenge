@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvhi7fuc";
+import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvtk5hjd";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },

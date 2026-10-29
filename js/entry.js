@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvhi7fuc";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvhi7fuc";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvhi7fuc";
-import { verifyTeamPin } from "./auth.js?v=mvhi7fuc";
-import { ENTRY_URL } from "./config.js?v=mvhi7fuc";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtk5hjd";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvtk5hjd";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvtk5hjd";
+import { verifyTeamPin } from "./auth.js?v=mvtk5hjd";
+import { ENTRY_URL } from "./config.js?v=mvtk5hjd";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -43,7 +43,10 @@ async function init() {
     scored = computeScores(data);
     rules = scored.rules;
     // คนใน ignore_runners ยังกรอกได้ (ต่อท้ายรายชื่อ) แต่ผลมีป้าย "ไม่นับ"
-    teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: [...t.members, ...t.ignored], ignored: t.ignored }));
+    // scored.teams เรียงตามคะแนน — หน้านี้ทุกทีมเปิดได้ ต้องเรียง A–G ไม่ให้ลำดับบอกว่าใครนำ
+    teams = scored.teams
+      .map((t) => ({ id: t.id, name: t.name, color: t.color, members: [...t.members, ...t.ignored], ignored: t.ignored }))
+      .sort((a, b) => a.id.localeCompare(b.id));
     entries = [...scored.entries, ...scored.ignoredEntries]
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line))
       .map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note, ignored: Boolean(e.ignored) }));
