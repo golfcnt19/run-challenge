@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvtkpejv";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvtkpejv";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvtkpejv";
-import { USE_SAMPLE } from "./config.js?v=mvtkpejv";
+import { loadAll } from "./sheets.js?v=mvtnzi6z";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvtnzi6z";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvtnzi6z";
+import { USE_SAMPLE } from "./config.js?v=mvtnzi6z";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -130,6 +130,7 @@ function render(loadedAt) {
   renderTrack(teams, rules);
   renderBoard(teams, rules);
   renderWeekCards(teams);
+  renderCardSummary(teams);
   renderTopRunners(state.runners);
   renderRules(rules, teams);
   renderDaily(teams, days);
@@ -180,11 +181,13 @@ const athleteSvg = (id, rank) => `<svg class="athlete-svg" viewBox="0 0 100 130"
   <circle class="medal" cx="50" cy="64" r="6.5" fill="${MEDAL_COLOR[rank]}"/>
 </svg>`;
 
-// โพเดียมเมื่อจบกิจกรรม (วันนี้ > end_date)
+// หน้าประกาศผล = จบกิจกรรมแล้ว (วันนี้ > end_date) หรือ ?podium=1 (ดูตัวอย่างตอนเดโม)
+const finalView = () => state.finished || new URLSearchParams(location.search).has("podium");
+
+// โพเดียมเมื่อจบกิจกรรม
 function renderPodium(teams, rules) {
   const el = $("podium");
-  const preview = !state.finished && new URLSearchParams(location.search).has("podium"); // ?podium=1 = ดูตัวอย่างตอนเดโม
-  if ((!state.finished && !preview) || !teams.length) return (el.hidden = true);
+  if (!finalView() || !teams.length) return (el.hidden = true);
   const top = teams.slice(0, 3);
   const order = [top[1], top[0], top[2]].filter(Boolean); // 2-1-3
   const cls = { 1: "s1", 2: "s2", 3: "s3" };
@@ -387,6 +390,53 @@ function renderWeekCards(teams) {
     return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td>${cells}<td>${left.length ? left.map((k) => CARDS[k].icon).join(" ") : "–"}</td></tr>`;
   }).join("");
   $("week-cards").innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
+// สรุปการ์ดทั้งงาน (หน้าประกาศผล — แทนตาราง "การ์ดวีคนี้") หน้าตาเดียวกับประวัติในหน้าการ์ด แต่ครบทุกทีม
+const signed = (n) => (n > 0 ? "+" : "") + fmtPts(n);
+function renderCardSummary(teams) {
+  const on = finalView();
+  $("card-summary-card").hidden = !on;
+  $("week-cards-card").hidden = on;
+  if (!on) return;
+  const sum = Object.fromEntries(teams.map((t) => [t.id, { used: 0, gain: 0, loss: 0, dealt: 0 }]));
+  for (const c of state.cards) {
+    sum[c.team.id].used++;
+    if (c.effect === null) continue;
+    if (c.card === "block") { sum[c.targetTeam.id].loss += c.effect; sum[c.team.id].dealt -= c.effect; }
+    else sum[c.team.id].gain += c.effect;
+  }
+  const rows = [...teams].sort((x, y) => x.id.localeCompare(y.id)).map((t) => {
+    const s = sum[t.id], net = s.gain + s.loss;
+    return `<tr><td><span class="dot" style="background:${esc(t.color)}"></span>${esc(t.id)}</td><td>${s.used}</td><td class="up">${s.gain ? signed(s.gain) : "–"}</td><td class="down">${s.loss ? signed(s.loss) : "–"}</td><td><b>${net ? signed(net) : "–"}</b></td><td>${s.dealt ? fmtPts(s.dealt) : "–"}</td></tr>`;
+  }).join("");
+  $("card-summary").innerHTML = `<thead><tr><th>ทีม</th><th>ใช้</th><th>ได้จากการ์ด</th><th>โดน block</th><th>สุทธิ</th><th>block ทีมอื่น</th></tr></thead><tbody>${rows}</tbody>`;
+  $("card-summary-sub").textContent = `${state.cards.length} ใบ`;
+
+  // ทุกใบ จัดกลุ่มตามวีค (เก่า → ใหม่)
+  const groups = new Map();
+  for (const c of [...state.cards].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.team.id.localeCompare(b.team.id))))
+    (groups.get(c.week) || groups.set(c.week, []).get(c.week)).push(c);
+  $("card-all-sum").textContent = `ดูการ์ดทุกใบ (${state.cards.length} ใบ)`;
+  $("card-all").innerHTML = [...groups.entries()].map(([wk, cs]) => `
+    <div class="hl-week">วีค ${fmtDateShort(wk)} – ${fmtDateShort(addDays(wk, 6))}</div>
+    <ul class="log hl">${cs.map(cardLine).join("")}</ul>`).join("");
+}
+// การ์ด 1 ใบในรายการ (เหมือน cardLine ใน cards.js)
+function cardLine(c) {
+  const who = c.card === "carry" ? `${esc(c.runner)} → ${esc(c.target)}`
+    : c.card === "x2" ? esc(c.runner)
+    : c.revealed ? `${esc(c.target)} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
+  let eff;
+  if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
+  else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">${c.dupOf?.date === c.date ? "ซ้อน" : "ซ้ำในวีค"}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
+  return `<li>
+    <span class="d">${fmtDateShort(c.date)}</span>
+    <span class="dot-badge mini" style="--team:${esc(c.team.color)}">${esc(c.team.id)}</span>
+    <span class="hl-what">${CARDS[c.card].icon} ${who}${c.effect === null ? "" : `<small class="hl-detail">${esc(c.detail)}</small>`}</span>
+    ${eff}
+  </li>`;
 }
 
 // นักวิ่งเด่น = ระยะวิ่งจริงสะสม (วิ่งสวน + วิ่งลู่) — ไม่ใช้คะแนน เพราะติดเพดาน 5/วัน จนวิ่งไกลแค่ไหนก็เสมอกัน
