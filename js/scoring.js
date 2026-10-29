@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvtk5hjd";
+import { todayIso, nowTime, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvtkpejv";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -79,15 +79,25 @@ export function weekKey(iso) {
   return toIso(d);
 }
 
+// "2026-10-31 16:00" / "31/10/2026 16:00:00" → "2026-10-31 16:00" · ไม่มีเวลา = 00:00 · อ่านไม่ออก = ""
+function normalizeStamp(v) {
+  const s = String(v || "").trim();
+  const d = normalizeDate(s);
+  if (!d) return "";
+  const t = /[ T](\d{1,2}):(\d{2})/.exec(s);
+  return `${d} ${t ? t[1].padStart(2, "0") + ":" + t[2] : "00:00"}`;
+}
+
 export function readRules(config) {
   const num = (k, d) => {
     const v = parseFloat(config[k]);
     return Number.isFinite(v) ? v : d;
   };
+  const endDate = config.end_date || "2026-10-30";
   return {
     title: config.title || "Run Challenge",
     startDate: config.start_date || "2026-10-01",
-    endDate: config.end_date || "2026-10-30",
+    endDate, // ปิดรับผล/การ์ดหลังวันนี้ 23:59 (ทุกคน รวมแอดมิน)
     dailyCap: num("daily_cap", 5),
     pointsPerRunKm: num("points_per_run_km", 1),
     walkStepsForFull: num("walk_steps_for_full", 10000),
@@ -102,20 +112,24 @@ export function readRules(config) {
     // โหมดลุ้น: เปิดตารางคะแนนเฉพาะวันที่ระบุ (เว้นว่าง = เปิดตลอดเวลาแบบเดิม)
     revealDates: String(config.reveal_dates || "").split(",").map((x) => x.trim()).filter(Boolean).sort(),
     boardPin: String(config.board_pin || "").trim(), // รหัสเปิดดูตารางคะแนน (เว้นว่าง = ใครก็ดูได้)
+    // เวลาประกาศผล (เวลาไทย) — ตารางคะแนนเปิดให้ทุกคนตอนนี้ · ไม่ใส่ = วันถัดจาก end_date 16:00
+    announceAt: normalizeStamp(config.announce_at) || `${addDays(endDate, 1)} 16:00`,
   };
 }
 
 // ตารางคะแนน (board.html) เปิดให้ทุกคนดูวันนี้ไหม
 //   ไม่ตั้ง board_pin         → ใครก็ดูได้ (เหมือนเดิม)
-//   ตั้ง board_pin            → ต้องใส่รหัส ยกเว้นวันใน reveal_dates และหลังจบกิจกรรม
-export function revealState(rules, today = todayIso()) {
+//   ตั้ง board_pin            → ต้องใส่รหัส ยกเว้นวันใน reveal_dates และตั้งแต่เวลาประกาศผล (announce_at)
+export function revealState(rules, today = todayIso(), time = nowTime()) {
   const dates = rules.revealDates;
-  const afterEnd = today > rules.endDate;
-  const isPublic = !rules.boardPin || afterEnd || dates.includes(today);
+  const afterEnd = today > rules.endDate; // ปิดรับผล/การ์ดแล้ว
+  const announced = `${today} ${time}` >= rules.announceAt;
+  const isPublic = !rules.boardPin || announced || dates.includes(today);
   const next = dates.find((d) => d > today) || "";
   return {
     public: isPublic,
     afterEnd,
+    announced,
     next,
     daysLeft: next ? Math.round((parseDate(next) - parseDate(today)) / 86400000) : 0,
   };

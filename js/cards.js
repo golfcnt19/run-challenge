@@ -1,10 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtk5hjd";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvtk5hjd";
-import { fmtDateLong } from "./format.js?v=mvtk5hjd";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mvtk5hjd";
-import { verifyTeamPin } from "./auth.js?v=mvtk5hjd";
-import { ENTRY_URL } from "./config.js?v=mvtk5hjd";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtkpejv";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvtkpejv";
+import { fmtDateLong } from "./format.js?v=mvtkpejv";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mvtkpejv";
+import { verifyTeamPin } from "./auth.js?v=mvtkpejv";
+import { ENTRY_URL } from "./config.js?v=mvtkpejv";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -205,12 +205,15 @@ function renderCards() {
   if (doneFor !== teamId) { $("card-done").hidden = true; $("card-done").innerHTML = ""; }
   if (!t) return;
   const cs = cardState[t.id] || { used: {}, usedToday: false, left: CARD_TYPES };
+  const end = scored.rules.endDate, closed = todayIso() > end; // เลย end_date 23:59 = ปิดใช้การ์ด (Code.gs ก็ปฏิเสธ)
+  if (closed) pickedCard = null;
   $("cards-team").textContent = t.name;
-  $("cards-week").textContent = `วีค ${fmtDateShort(weekKey(todayIso()))}`;
+  $("cards-week").textContent = closed ? `ปิดใช้การ์ดแล้ว (หมดเวลา ${fmtDateShort(end)} 23:59 น.)`
+    : `วีค ${fmtDateShort(weekKey(todayIso()))}${todayIso() === end ? " · 🔥 วันสุดท้าย ใช้ได้ถึง 23:59 น." : ""}`;
   $("card-grid").innerHTML = CARD_TYPES.map((k) => {
     const used = cs.used[k];
-    const dis = used || cs.usedToday;
-    const sub = used ? `ใช้แล้ว ${fmtDateShort(used)}` : cs.usedToday ? "วันนี้ใช้ไปแล้ว 1 ใบ" : "พร้อมใช้";
+    const dis = closed || used || cs.usedToday;
+    const sub = closed ? "กิจกรรมจบแล้ว" : used ? `ใช้แล้ว ${fmtDateShort(used)}` : cs.usedToday ? "วันนี้ใช้ไปแล้ว 1 ใบ" : "พร้อมใช้";
     return `<button type="button" class="card-btn ${used ? "is-used" : ""} ${pickedCard === k ? "is-active" : ""}" data-card="${k}" ${dis ? "disabled" : ""}><span class="ic">${CARDS[k].icon}</span>${CARDS[k].label}<small>${sub}</small></button>`;
   }).join("");
   renderCardForm();

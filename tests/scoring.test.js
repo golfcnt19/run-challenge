@@ -312,14 +312,34 @@ test("ตั้ง board_pin แล้ว เปิดเฉพาะวัน�
   assert.equal(revealState(r, "2026-10-15").public, false, "วันธรรมดา = ล็อก");
   assert.equal(revealState(r, "2026-10-17").public, true, "วันเปิด");
   assert.equal(revealState(r, "2026-10-24").public, true, "วันเปิดถัดไป");
-  assert.equal(revealState(r, "2026-10-31").public, true, "หลัง end_date เปิดถาวร");
+  assert.equal(revealState(r, "2026-10-31", "16:00").public, true, "ประกาศผลแล้ว เปิดถาวร");
   const v = revealState(r, "2026-10-15");
   assert.equal(v.next, "2026-10-17");
   assert.equal(v.daysLeft, 2);
 });
 
-test("ตั้ง board_pin แต่ไม่ใส่ reveal_dates = ล็อกจนจบกิจกรรม", () => {
+test("ตั้ง board_pin แต่ไม่ใส่ reveal_dates = ล็อกจนประกาศผล (วันถัดจาก end_date 16:00)", () => {
   const r = readRules({ ...CONFIG, board_pin: "X1" });
-  assert.equal(revealState(r, "2026-10-17").public, false);
-  assert.equal(revealState(r, "2026-10-31").public, true);
+  assert.equal(r.announceAt, "2026-10-31 16:00");
+  assert.equal(revealState(r, "2026-10-17", "12:00").public, false);
+  assert.equal(revealState(r, "2026-10-31", "00:00").public, false, "จบแล้วแต่ยังไม่ถึงเวลาประกาศ");
+  assert.equal(revealState(r, "2026-10-31", "15:59").public, false);
+  assert.equal(revealState(r, "2026-10-31", "16:00").public, true);
+  assert.equal(revealState(r, "2026-11-01", "00:00").public, true);
+});
+
+test("announce_at ในชีตเปลี่ยนเวลาประกาศได้ · อ่านได้หลายรูปแบบ", () => {
+  assert.equal(readRules({ ...CONFIG, announce_at: "2026-10-31 18:30" }).announceAt, "2026-10-31 18:30");
+  assert.equal(readRules({ ...CONFIG, announce_at: "31/10/2026 9:05:00" }).announceAt, "2026-10-31 09:05");
+  assert.equal(readRules({ ...CONFIG, announce_at: "2026-11-01" }).announceAt, "2026-11-01 00:00");
+  assert.equal(readRules({ ...CONFIG, announce_at: "zzz" }).announceAt, "2026-10-31 16:00", "อ่านไม่ออก = ค่าเริ่มต้น");
+  const r = readRules({ ...CONFIG, board_pin: "X1", announce_at: "2026-10-31 18:30" });
+  assert.equal(revealState(r, "2026-10-31", "18:29").public, false);
+  assert.equal(revealState(r, "2026-10-31", "18:30").public, true);
+});
+
+test("ปิดรับผล/การ์ด (afterEnd) ตั้งแต่ 00:00 ของวันถัดจาก end_date", () => {
+  const r = readRules(CONFIG);
+  assert.equal(revealState(r, "2026-10-30", "23:59").afterEnd, false);
+  assert.equal(revealState(r, "2026-10-31", "00:00").afterEnd, true);
 });

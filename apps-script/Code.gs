@@ -93,11 +93,13 @@ function deleteEntry_(b) {
   const auth = authorize_(b, readTeams_(ss, config));
   if (auth.error) return { ok: false, error: auth.error, code: auth.code };
 
+  const todayDel = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+  const closed = closedMsg_(config, todayDel);
+  if (closed) return closed;
   const date = normalizeDate_(b.date);
   const activity = normalizeActivity_(b.activity);
   const amount = Number(String(b.amount || "").replace(/,/g, ""));
   if (!date || !activity || !isFinite(amount)) return { ok: false, error: "ข้อมูลรายการไม่ครบ" };
-  const todayDel = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
   const oldestDel = oldestAllowed_(config, todayDel);
   if (!auth.isAdmin && date < oldestDel) return { ok: false, error: "ลบได้เฉพาะรายการตั้งแต่วันที่ " + oldestDel + " เป็นต้นมา — เก่ากว่านั้นให้แจ้งแอดมิน", code: "PAST" };
 
@@ -128,11 +130,13 @@ function addEntry_(b) {
   if (auth.error) return { ok: false, error: auth.error, code: auth.code };
   const teamId = auth.teamId, member = auth.member, isAdmin = auth.isAdmin;
 
+  const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+  const closed = closedMsg_(config, today);
+  if (closed) return closed;
   const date = normalizeDate_(b.date);
   if (!date) return { ok: false, error: "วันที่ไม่ถูกต้อง" };
   if (config.start_date && date < config.start_date) return { ok: false, error: "วันที่ก่อนเริ่มกิจกรรม (" + config.start_date + ")" };
   if (config.end_date && date > config.end_date) return { ok: false, error: "วันที่หลังจบกิจกรรม (" + config.end_date + ")" };
-  const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
   if (date > today) return { ok: false, error: "กรอกล่วงหน้าไม่ได้" };
   // ย้อนหลังได้ไม่เกิน backfill_days วัน (ตั้งในชีต · 0 = วันนี้เท่านั้น · ค่าเริ่มต้น 1 = เมื่อวาน+วันนี้) ยกเว้น ADMIN
   const oldest = oldestAllowed_(config, today);
@@ -264,6 +268,12 @@ function ensureCardHeaders_(sh) {
   const want = ["date", "team_id", "card", "runner", "target_team", "target_runner", "submitted_at"];
   const have = sh.getRange(1, 1, 1, want.length).getValues()[0];
   want.forEach((h, i) => { if (!have[i]) sh.getRange(1, i + 1).setValue(h); });
+}
+
+// เลย end_date 23:59 (เวลาไทย) = ปิดรับผล/ลบผล ทุกคน รวม ADMIN (แก้หลังจากนี้ทำในชีตตรง ๆ) — การ์ดเช็กใน useCard_ แล้ว
+function closedMsg_(config, today) {
+  if (!config.end_date || today <= config.end_date) return null;
+  return { ok: false, error: "ปิดรับผลแล้ว — หมดเวลา " + config.end_date + " 23:59 น.", code: "CLOSED" };
 }
 
 // วันเก่าสุดที่ยังกรอก/ลบได้ = วันนี้ − backfill_days

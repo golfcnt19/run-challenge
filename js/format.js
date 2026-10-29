@@ -41,6 +41,19 @@ export function todayIso() {
   return toIso(new Date());
 }
 
+// เวลาตอนนี้ "HH:MM" — จำลองได้เฉพาะในเครื่อง: ?today=2026-10-31&time=15:59
+const TIME_OVERRIDE = DEV ? new URLSearchParams(location.search).get("time") : null;
+export function nowTime() {
+  if (TIME_OVERRIDE && /^\d{1,2}:\d{2}$/.test(TIME_OVERRIDE)) return TIME_OVERRIDE.padStart(5, "0");
+  return fmtTime(new Date());
+}
+
+// "2026-10-31 16:00" → "31 ต.ค. 16:00 น."
+export function fmtStamp(stamp) {
+  const [d, t] = String(stamp || "").split(" ");
+  return `${fmtDateShort(d)}${t ? ` ${t} น.` : ""}`;
+}
+
 export function addDays(iso, n) {
   const d = parseDate(iso);
   d.setDate(d.getDate() + n);

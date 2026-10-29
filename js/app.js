@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvtk5hjd";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvtk5hjd";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays } from "./format.js?v=mvtk5hjd";
-import { USE_SAMPLE } from "./config.js?v=mvtk5hjd";
+import { loadAll } from "./sheets.js?v=mvtkpejv";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvtkpejv";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvtkpejv";
+import { USE_SAMPLE } from "./config.js?v=mvtkpejv";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,9 +21,22 @@ const unlocked = () => unlockedNow;
 
 function lockScreen(rules) {
   const rv = revealState(rules);
-  const when = rv.next
+  const [annDay, annTime] = rules.announceAt.split(" ");
+  const when = rv.next && rv.next < annDay
     ? `เปิดให้ทุกคนดู ${fmtDateLong(rv.next)}${rv.daysLeft > 0 ? ` (อีก ${rv.daysLeft} วัน)` : ""}`
-    : `เปิดให้ทุกคนดูวันประกาศผล ${fmtDateLong(addDays(rules.endDate, 1))}`;
+    : `ประกาศผล ${annDay === todayIso() ? "วันนี้" : fmtDateLong(annDay)} ${annTime} น. — เปิดให้ทุกคนดูอัตโนมัติ`;
+  // วันประกาศผล: เปิดหน้ารอไว้ ถึงเวลาแล้วรีโหลดเอง (ไม่ต้องกดรีเฟรช)
+  if (annDay === todayIso()) {
+    const [h, m] = annTime.split(":").map(Number), at = new Date();
+    at.setHours(h, m, 5, 0);
+    if (at > new Date()) setTimeout(() => location.reload(), at - new Date());
+  }
+  // หัวหน้า: ชื่อ/ช่วงกิจกรรม แทน "กำลังโหลด…" ที่ค้าง (ไม่บอกคะแนน)
+  $("title").textContent = rules.title;
+  $("range").textContent = `${fmtDateLong(rules.startDate)} – ${fmtDateLong(rules.endDate)}`;
+  $("progress-text").textContent = rv.afterEnd ? "จบกิจกรรมแล้ว" : "";
+  $("progress-days").textContent = `ประกาศผล ${fmtStamp(rules.announceAt)}`;
+  $("updated").textContent = "🔒 ล็อกอยู่";
   // ซ่อน <main> ไว้เฉย ๆ (ไม่ลบทิ้ง) เพื่อให้ event listener ที่ผูกไว้ตอนโหลดยังอยู่ครบหลังปลดล็อก
   $("main").hidden = true;
   const box = document.createElement("div");
@@ -42,7 +55,7 @@ function lockScreen(rules) {
       </label>
       <div class="alert" id="lock-error" hidden></div>
       <button type="button" class="btn-primary" id="board-unlock">เปิดดู</button>
-      <p class="hint" style="margin-top:12px">หัวหน้าทีมใช้ <a href="./">✏️ หน้ากรอกผล</a> และ <a href="cards.html">🃏 การ์ด</a> ได้ตามปกติ</p>
+      <p class="hint" style="margin-top:12px">${rv.afterEnd ? `ปิดรับผลและการ์ดแล้ว (หมดเวลา ${fmtDateShort(rules.endDate)} 23:59 น.)` : `หัวหน้าทีมใช้ <a href="./">✏️ หน้ากรอกผล</a> และ <a href="cards.html">🃏 การ์ด</a> ได้ตามปกติ`}</p>
     </div>`;
   const tryPin = () => {
     const v = $("board-pin").value.trim().toUpperCase();
@@ -98,11 +111,11 @@ function render(loadedAt) {
   if (today < rules.startDate) {
     const left = Math.round((new Date(rules.startDate) - new Date(today)) / 86400000);
     $("progress-text").textContent = `ยังไม่เริ่ม — อีก ${left} วัน`;
-  } else if (today > rules.endDate) $("progress-text").textContent = "จบกิจกรรมแล้ว 🎉";
+  } else if (today > rules.endDate) $("progress-text").textContent = revealState(rules).announced ? "จบกิจกรรมแล้ว 🎉" : `จบกิจกรรมแล้ว · ประกาศผล ${fmtStamp(rules.announceAt)}`;
   else $("progress-text").textContent = ""; // ระหว่างแข่งโชว์แค่ "เหลืออีก N วัน" ฝั่งขวาพอ
   const daysLeft = Math.max(0, totalDays - daysElapsed);
   // ก่อนเริ่ม: ฝั่งซ้ายนับถอยหลังวันเริ่มอยู่แล้ว ฝั่งขวาบอกวันประกาศผล (วันถัดจาก end_date = วันที่โพเดียมขึ้น)
-  $("progress-days").textContent = today < rules.startDate ? `ประกาศผล ${fmtDateShort(addDays(rules.endDate, 1))}`
+  $("progress-days").textContent = today < rules.startDate ? `ประกาศผล ${fmtStamp(rules.announceAt)}`
     : today > rules.endDate ? `${pct}%` : `เหลืออีก ${daysLeft} วัน · ${pct}%`;
 
   $("updated").textContent = `อัปเดต ${fmtDateShort(today)} ${fmtTime(loadedAt)}${USE_SAMPLE ? " · ข้อมูลตัวอย่าง" : ""}`;
@@ -142,7 +155,7 @@ function renderCountdown(rules, daysLeft, today) {
   const el = $("progress-days");
   const final = today >= rules.startDate && today <= rules.endDate && daysLeft <= 3;
   el.classList.toggle("is-final", final);
-  if (final) el.textContent = daysLeft === 0 ? "🔥 วันสุดท้าย!" : `🔥 เหลืออีก ${daysLeft} วัน — เร่งเลย!`;
+  if (final) el.textContent = daysLeft === 0 ? "🔥 วันสุดท้าย! ปิดรับ 23:59 น." : `🔥 เหลืออีก ${daysLeft} วัน — เร่งเลย!`;
 }
 
 // ลิงก์เล็กท้ายหน้าสำหรับเดโม: เปิด/ปิดตัวอย่างโพเดียม (ซ่อนเมื่อจบกิจกรรมจริงเพราะโชว์อยู่แล้ว)

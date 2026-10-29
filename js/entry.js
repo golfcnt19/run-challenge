@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtk5hjd";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvtk5hjd";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays } from "./format.js?v=mvtk5hjd";
-import { verifyTeamPin } from "./auth.js?v=mvtk5hjd";
-import { ENTRY_URL } from "./config.js?v=mvtk5hjd";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtkpejv";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvtkpejv";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays, fmtStamp } from "./format.js?v=mvtkpejv";
+import { verifyTeamPin } from "./auth.js?v=mvtkpejv";
+import { ENTRY_URL } from "./config.js?v=mvtkpejv";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -23,6 +23,7 @@ let sinceDate = ""; // วันแรกของช่วง 7 วันหล
 let unlockedTeam = ""; // ทีมที่ใส่ PIN ถูกแล้วในแท็บนี้ — ดูข้อมูลได้เฉพาะทีมนี้
 let teamId = store.get(LS.team) || "";
 let activity = "run";
+let closed = false; // เลย end_date 23:59 แล้ว — ปิดรับผล/ลบผล (ทุกคน รวมแอดมิน · แก้หลังจากนี้ทำในชีต)
 const RECENT_DAYS = 7; // แสดงรายการของทีมเฉพาะ 7 วันหลังสุด
 const AMOUNT = {
   run:       { label: "ระยะทาง (กม.)", step: "0.01", ph: "เช่น 5.2",   hint: (r) => `1 กม. = ${r.pointsPerRunKm} คะแนน · เพดาน ${r.dailyCap}/วัน` },
@@ -51,12 +52,20 @@ async function init() {
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.line - a.line))
       .map((e) => ({ date: e.date, runner: e.runner, teamId: e.team.id, activity: e.activity, amount: e.amount, note: e.note, ignored: Boolean(e.ignored) }));
     sinceDate = scored.days.length ? scored.days[Math.max(0, scored.days.length - RECENT_DAYS)] : "";
-    // ย้อนหลังได้ตาม backfill_days ในชีต (ค่าเริ่มต้น 1 วัน)
-    const oldest = addDays(todayIso(), -Math.max(0, rules.backfillDays));
+    // ย้อนหลังได้ตาม backfill_days ในชีต (ค่าเริ่มต้น 1 วัน) · เลือกได้ไม่เกิน end_date
+    const today = todayIso();
+    closed = today > rules.endDate;
+    const latest = today < rules.endDate ? today : rules.endDate;
+    const oldest = addDays(today, -Math.max(0, rules.backfillDays));
+    $("date").max = latest;
+    $("date").value = latest;
     $("date").min = oldest < rules.startDate ? rules.startDate : oldest;
-    $("date-hint").textContent = rules.backfillDays > 0
+    const back = rules.backfillDays > 0
       ? `กรอกได้ถึงผลของวันที่ ${fmtDateShort($("date").min)} (ย้อนหลังได้ ${rules.backfillDays} วัน)`
       : "กรอกได้เฉพาะผลของวันนี้";
+    $("date-hint").textContent = closed ? `ปิดรับผลแล้ว (หมดเวลา ${fmtDateShort(rules.endDate)} 23:59 น.) · ประกาศผล ${fmtStamp(rules.announceAt)}`
+      : today === rules.endDate ? `🔥 วันสุดท้าย — ปิดรับผลคืนนี้ 23:59 น. · ${back}` : back;
+    if (closed) $("submit").textContent = "ปิดรับผลแล้ว";
     $("range").textContent = `${rules.title} · ${fmtDateShort(rules.startDate)} – ${fmtDateShort(rules.endDate)}`;
     if (!teams.some((t) => t.id === teamId)) teamId = "";
     renderChips();
@@ -93,7 +102,7 @@ function entryHtml(e, idx) {
   return `<li data-idx="${idx}">
     <span class="d">${fmtDateShort(e.date)}</span><span>${esc(e.runner)}${e.ignored ? ` <small class="dim">ไม่นับ</small>` : ""}</span>${e.note ? `<span class="note">${esc(e.note)}</span>` : ""}
     <span class="a">${a.icon} ${fmtNum(e.amount, a.timed || e.activity === "walk" ? 0 : 2)} ${a.unit}</span>
-    <button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>
+    ${closed ? "" : `<button type="button" class="btn-del" data-del="${idx}" aria-label="ลบรายการ">🗑</button>`}
   </li>`;
 }
 
@@ -145,6 +154,10 @@ function renderDayHint() {
   const done = rules && runner && date ? dayEntry(runner, date) : null;
   // ยังไม่ใส่ PIN = ไม่บอกว่าใครส่งอะไรไปแล้ว (กันดูข้อมูลทีมอื่น) ปุ่มบันทึกยังกดได้
   // ถ้าซ้ำจริง เซิร์ฟเวอร์จะปฏิเสธเองด้วย code DAY_TAKEN
+  if (closed) {
+    $("submit").disabled = true;
+    return (el.hidden = true);
+  }
   if (teamId !== unlockedTeam) {
     $("submit").disabled = false;
     return (el.hidden = true);
@@ -211,6 +224,7 @@ const sameAmount = (r, e) => normalizeActivity(r.activity) === e.activity && Mat
 
 async function submit(e) {
   e.preventDefault();
+  if (closed) return showError(`ปิดรับผลแล้ว (หมดเวลา ${fmtDateShort(rules.endDate)} 23:59 น.)`);
   showError("");
   if (!ENTRY_URL) return showError("ยังไม่ได้ตั้งค่า ENTRY_URL");
   const payload = {
