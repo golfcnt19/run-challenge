@@ -343,3 +343,17 @@ test("ปิดรับผล/การ์ด (afterEnd) ตั้งแต่ 
   assert.equal(revealState(r, "2026-10-30", "23:59").afterEnd, false);
   assert.equal(revealState(r, "2026-10-31", "00:00").afterEnd, true);
 });
+
+test("block วันสุดท้าย: เฉลยตอนประกาศผล (ทีมที่โดนไม่รู้ก่อน) · แอดมินเห็นตั้งแต่จบวัน · วันอื่นเฉลยข้ามวันเหมือนเดิม", () => {
+  const L = "2026-10-30", P = "2026-10-29";
+  const data = { config: CONFIG, teams: TEAMS, runs: [...runAll(L, A, 5), ...runAll(P, A, 5)], cards: [block(L, "B", "A", "a1"), block(P, "C", "A", "a2")] };
+  const at = (time, opts = {}) => computeScores(data, "2026-10-31", { time, ...opts });
+  const before = at("15:59");
+  const last = before.cards.find((c) => c.date === L), prev = before.cards.find((c) => c.date === P);
+  assert.equal(last.revealed, false); assert.equal(last.effect, null); assert.equal(last.detail, "เฉลยตอนประกาศผล");
+  eq(day(before, "A", L), 25, "ก่อนประกาศ ยังไม่หัก");
+  assert.equal(prev.revealed, true, "block วันก่อนหน้าเฉลยตามปกติ"); eq(day(before, "A", P), 20);
+  eq(day(at("16:00"), "A", L), 20, "ถึงเวลาประกาศ หักแล้ว");
+  eq(day(at("09:00", { revealLast: true }), "A", L), 20, "แอดมินเห็นก่อน");
+  assert.equal(computeScores(data, L, { time: "23:00" }).cards.find((c) => c.date === L).detail, "เฉลยตอนประกาศผล", "ระหว่างวันสุดท้ายบอกว่ารอประกาศ");
+});

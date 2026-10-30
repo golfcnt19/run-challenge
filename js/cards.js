@@ -1,10 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvtnzi6z";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvtnzi6z";
-import { fmtDateLong } from "./format.js?v=mvtnzi6z";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate } from "./format.js?v=mvtnzi6z";
-import { verifyTeamPin } from "./auth.js?v=mvtnzi6z";
-import { ENTRY_URL } from "./config.js?v=mvtnzi6z";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvuew5z2";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvuew5z2";
+import { fmtDateLong } from "./format.js?v=mvuew5z2";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate, fmtStamp } from "./format.js?v=mvuew5z2";
+import { verifyTeamPin } from "./auth.js?v=mvuew5z2";
+import { ENTRY_URL } from "./config.js?v=mvuew5z2";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -56,7 +56,7 @@ function cardLine(c) {
     : c.card === "x2" ? esc(c.runner)
     : c.revealed ? `${esc(c.target)} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
   let eff;
-  if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
+  if (c.effect === null) eff = `<span class="eff dim">${esc(c.detail)}</span>`;
   else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">${c.dupOf?.date === c.date ? "ซ้อน" : "ซ้ำในวีค"}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   return `<li>
@@ -138,7 +138,7 @@ function renderRules(r) {
   $("cards-rules").innerHTML = `
     <li>🎒 <b>เดอะแบก</b> โอนส่วนที่เกิน ${fmtPts(r.dailyCap)} ของผู้ให้ไปให้เพื่อนร่วมทีม 1 คน สูงสุด ${fmtPts(r.dailyCap)} (ผู้รับยังไม่เกิน ${fmtPts(r.dailyCap)})</li>
     <li>✖️2 <b>คูณสอง</b> ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 สูงสุด ${fmtPts(r.dailyCap * 2)}</li>
-    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง (x2 ไม่มีผล · รับเดอะแบกไม่ได้ · <b>โอนเดอะแบกให้คนอื่นก็ไม่ได้</b>) · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>
+    <li>🛡️ <b>Block</b> เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน (<b>block วันสุดท้าย เฉลยตอนประกาศผล ${fmtStamp(r.announceAt)}</b>) · block ชนะทุกอย่าง (x2 ไม่มีผล · รับเดอะแบกไม่ได้ · <b>โอนเดอะแบกให้คนอื่นก็ไม่ได้</b>) · <b>1 คนโดน block ได้ 1 วัน/วีค</b> (วันเดียวกันหลายทีมซ้อนได้ แต่มีผลใบเดียว)</li>
     <li>👥 การ์ดให้ผล<b>เท่ากันทุกทีม</b> ไม่ว่าทีมจะมีกี่คน (ไม่คิดสัดส่วน) — x2 เต็ม ทีม +${fmtPts(r.dailyCap)} · โดน block คนที่ได้ ${fmtPts(r.dailyCap)} ทีม −${fmtPts(r.dailyCap)}</li>`;
   const cap = r.dailyCap, p = fmtPts;
   $("cards-examples").innerHTML = `
@@ -335,7 +335,7 @@ async function useCard() {
     done.innerHTML = c.card === "x2"
       ? `🎲 สุ่มได้<span class="big">✖️2 ${esc(c.runner)}</span>คะแนนวันนี้ของ ${esc(c.runner)} ×2`
       : c.card === "carry" ? `✅ ใช้แล้ว<span class="big">🎒 ${esc(c.runner)} → ${esc(c.target_runner)}</span>`
-      : `✅ ใช้แล้ว<span class="big">🛡️ ${esc(c.target_runner)} (${esc(c.target_team)})</span>เฉลยหลังจบวัน`;
+      : `✅ ใช้แล้ว<span class="big">🛡️ ${esc(c.target_runner)} (${esc(c.target_team)})</span>${scored && todayIso() === scored.rules.endDate ? `เฉลยตอนประกาศผล ${fmtStamp(scored.rules.announceAt)}` : "เฉลยหลังจบวัน"}`;
     done.hidden = false;
   } catch (err) {
     if (roll) clearInterval(roll);

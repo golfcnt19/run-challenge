@@ -14,12 +14,12 @@
 // การ์ดพิเศษ (แท็บ cards) ทีมละ 3 ใบ/วีค (จันทร์–อาทิตย์) ชนิดละ 1 ใบ วันละ 1 ใบ ใช้กับวันที่กดเท่านั้น
 //   carry (🎒 เดอะแบก)  ผู้ให้โอน "ส่วนที่เกินเพดาน" ให้เพื่อนร่วมทีม 1 คน สูงสุด = เพดาน ผู้รับยังติดเพดาน
 //   x2    (✖️2)         ระบบสุ่มสมาชิก 1 คน คะแนนวันนั้น ×2 เกินเพดานได้ สูงสุด 2×เพดาน
-//   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน · block ชนะทุกอย่าง (ผู้ให้เดอะแบกที่โดน block โอนไม่ได้)
+//   block (🛡️)          เลือกคนทีมอื่น 1 คน คะแนนวันนั้น = 0 · เฉลยหลังจบวัน (วันสุดท้าย = เฉลยตอนประกาศผล) · block ชนะทุกอย่าง (ผู้ให้เดอะแบกที่โดน block โอนไม่ได้)
 //                        1 คนโดน block ได้ 1 วัน/วีค · วันเดียวกันหลายทีมซ้อนได้ = มีผลใบเดียว เสียทุกใบ
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, nowTime, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvtnzi6z";
+import { todayIso, nowTime, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvuew5z2";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -161,8 +161,10 @@ export function challengeDays(rules, today = todayIso(), lastEntryDate = "") {
   return days;
 }
 
-export function computeScores(data, today = todayIso()) {
+// revealLast: แอดมินที่ปลดล็อกตารางคะแนน เห็น block วันสุดท้ายตั้งแต่จบวัน (ทีมอื่นรอประกาศผล)
+export function computeScores(data, today = todayIso(), { time = nowTime(), revealLast = false } = {}) {
   const rules = readRules(data.config);
+  const lastHidden = !revealLast && !revealState(rules, today, time).announced;
   const warnings = [];
 
   // --- ทีมและสมาชิก --- (คนใน ignore_runners ไม่อยู่ใน members → ไม่นับเป็นคนในทีม)
@@ -268,7 +270,8 @@ export function computeScores(data, today = todayIso()) {
       c.target = c.targetTeam && pick(c.targetTeam, r.target_runner);
       if (!c.targetTeam || !c.target) return warnings.push(`cards แถว ${line}: block ไม่พบ "${r.target_runner}" ในทีม "${r.target_team}"`);
       if (c.targetTeam.id === team.id) return warnings.push(`cards แถว ${line}: block ทีมตัวเองไม่ได้`);
-      c.revealed = date < today; // เฉลยหลังจบวัน
+      // เฉลยหลังจบวัน · block วันสุดท้ายรอประกาศผล (ทีมที่โดนจะไม่รู้ตัวก่อน)
+      c.revealed = date < today && !(date === rules.endDate && lastHidden);
     }
     // นับตามลำดับแถวในชีต: ใบแรกได้ ใบที่เกินโควตาไม่มีผล
     if (usedDay.has(`${team.id}|${date}`)) return warnings.push(`cards แถว ${line}: ทีม ${team.id} ใช้การ์ดวันที่ ${date} ไปแล้ว (วันละ 1 ใบ) — ไม่นับ`);
@@ -350,7 +353,7 @@ export function computeScores(data, today = todayIso()) {
       }
     } else {
       c.effect = null;
-      c.detail = "เฉลยพรุ่งนี้";
+      c.detail = c.date === rules.endDate && lastHidden ? "เฉลยตอนประกาศผล" : "เฉลยพรุ่งนี้";
     }
   }
 

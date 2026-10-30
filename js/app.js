@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvtnzi6z";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvtnzi6z";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvtnzi6z";
-import { USE_SAMPLE } from "./config.js?v=mvtnzi6z";
+import { loadAll } from "./sheets.js?v=mvuew5z2";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvuew5z2";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvuew5z2";
+import { USE_SAMPLE } from "./config.js?v=mvuew5z2";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -85,7 +85,7 @@ async function refresh() {
   $("error").hidden = true;
   try {
     const data = await loadAll();
-    state = computeScores(data);
+    state = computeScores(data, undefined, { revealLast: unlocked() });
     if (!revealState(state.rules).public && !unlocked()) return lockScreen(state.rules);
     render(data.loadedAt);
   } catch (e) {
@@ -428,7 +428,7 @@ function cardLine(c) {
     : c.card === "x2" ? esc(c.runner)
     : c.revealed ? `${esc(c.target)} <small>(ทีม ${esc(c.targetTeam.id)})</small>` : "<small>ยังไม่เฉลย</small>";
   let eff;
-  if (c.effect === null) eff = `<span class="eff dim">เฉลยพรุ่งนี้</span>`;
+  if (c.effect === null) eff = `<span class="eff dim">${esc(c.detail)}</span>`;
   else if (c.card === "block") eff = c.effect < 0 ? `<span class="eff down">ทีม ${esc(c.targetTeam.id)} ${signed(c.effect)}</span>` : c.stacked ? `<span class="eff dim">${c.dupOf?.date === c.date ? "ซ้อน" : "ซ้ำในวีค"}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   else eff = c.effect > 0 ? `<span class="eff up">ทีม ${esc(c.team.id)} ${signed(c.effect)}</span>` : `<span class="eff dim">ไม่มีผล</span>`;
   return `<li>
