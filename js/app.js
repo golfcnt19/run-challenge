@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvz4al3k";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvz4al3k";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvz4al3k";
-import { USE_SAMPLE } from "./config.js?v=mvz4al3k";
+import { loadAll } from "./sheets.js?v=mvz4gxia";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvz4gxia";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvz4gxia";
+import { USE_SAMPLE } from "./config.js?v=mvz4gxia";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -87,6 +87,8 @@ async function refresh() {
   try {
     const data = await loadAll();
     state = computeScores(data, undefined, { revealLast: unlocked() });
+    // จบกิจกรรมแล้ว หน้ากรอกผล/การ์ดพามาที่นี่ — ไม่ต้องมีปุ่มกลับไป
+    document.querySelectorAll(".hero-actions .btn-entry").forEach((a) => (a.hidden = revealState(state.rules).afterEnd));
     if (!revealState(state.rules).public && !unlocked()) return lockScreen(state.rules);
     render(data.loadedAt);
   } catch (e) {

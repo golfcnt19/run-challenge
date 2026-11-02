@@ -1,10 +1,10 @@
 // หน้าการ์ดพิเศษ — เลือกทีม + PIN แล้วใช้การ์ด (ส่ง action "card" ไป Apps Script)
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvz4al3k";
-import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvz4al3k";
-import { fmtDateLong } from "./format.js?v=mvz4al3k";
-import { fmtDateShort, fmtPts, todayIso, normalizeDate, fmtStamp } from "./format.js?v=mvz4al3k";
-import { verifyTeamPin } from "./auth.js?v=mvz4al3k";
-import { ENTRY_URL } from "./config.js?v=mvz4al3k";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvz4gxia";
+import { computeScores, CARDS, CARD_TYPES, weekKey, rawPoints, revealState } from "./scoring.js?v=mvz4gxia";
+import { fmtDateLong } from "./format.js?v=mvz4gxia";
+import { fmtDateShort, fmtPts, todayIso, normalizeDate, fmtStamp } from "./format.js?v=mvz4gxia";
+import { verifyTeamPin } from "./auth.js?v=mvz4gxia";
+import { ENTRY_URL } from "./config.js?v=mvz4gxia";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -31,6 +31,8 @@ async function init() {
   try {
     const data = await loadAll();
     scored = computeScores(data);
+    // จบกิจกรรมแล้ว: ไปตารางคะแนนแทน (เหมือนหน้ากรอกผล)
+    if (todayIso() > scored.rules.endDate) return location.replace(`board.html${location.search}`);
     // scored.teams เรียงตามคะแนน — หน้านี้ทุกทีมเปิดได้ ต้องเรียง A–G ไม่งั้นลำดับในรายการ (เช่น ทีมที่จะ block) บอกว่าใครนำ
     teams = scored.teams.map((t) => ({ id: t.id, name: t.name, color: t.color, members: t.members })).sort((a, b) => a.id.localeCompare(b.id));
     rawData = data;

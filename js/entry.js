@@ -1,9 +1,9 @@
 // หน้ากรอกผล — โหลดรายชื่อทีม+รายการจากชีต (อ่านอย่างเดียว) แล้วส่งเพิ่ม/ลบไป Apps Script
-import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvz4al3k";
-import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvz4al3k";
-import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays, fmtStamp } from "./format.js?v=mvz4al3k";
-import { verifyTeamPin } from "./auth.js?v=mvz4al3k";
-import { ENTRY_URL } from "./config.js?v=mvz4al3k";
+import { loadAll, postApi, confirmInSheet } from "./sheets.js?v=mvz4gxia";
+import { computeScores, ACTIVITIES, TIMED, act, rawPoints, normalizeActivity, revealState } from "./scoring.js?v=mvz4gxia";
+import { fmtDateShort, fmtNum, todayIso, normalizeDate, addDays, fmtStamp } from "./format.js?v=mvz4gxia";
+import { verifyTeamPin } from "./auth.js?v=mvz4gxia";
+import { ENTRY_URL } from "./config.js?v=mvz4gxia";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,6 +55,8 @@ async function init() {
     // ย้อนหลังได้ตาม backfill_days ในชีต (ค่าเริ่มต้น 1 วัน) · เลือกได้ไม่เกิน end_date
     const today = todayIso();
     closed = today > rules.endDate;
+    // จบกิจกรรมแล้ว: หน้าหลักเป็นตารางคะแนน (ล็อกด้วย board_pin / admin_only ตามเดิม)
+    if (closed) return location.replace(`board.html${location.search}`);
     const latest = today < rules.endDate ? today : rules.endDate;
     const oldest = addDays(today, -Math.max(0, rules.backfillDays));
     $("date").max = latest;
