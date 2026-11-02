@@ -1,8 +1,8 @@
 // โหลดข้อมูล → คิดคะแนน → วาดหน้า
-import { loadAll } from "./sheets.js?v=mvuew5z2";
-import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvuew5z2";
-import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvuew5z2";
-import { USE_SAMPLE } from "./config.js?v=mvuew5z2";
+import { loadAll } from "./sheets.js?v=mvz4al3k";
+import { computeScores, ACTIVITIES, TIMED, act, CARDS, CARD_TYPES, rawPoints, weekKey, revealState } from "./scoring.js?v=mvz4al3k";
+import { fmtDateShort, fmtDateLong, fmtTime, fmtNum, fmtPts, todayIso, addDays, fmtStamp } from "./format.js?v=mvz4al3k";
+import { USE_SAMPLE } from "./config.js?v=mvz4al3k";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -22,11 +22,12 @@ const unlocked = () => unlockedNow;
 function lockScreen(rules) {
   const rv = revealState(rules);
   const [annDay, annTime] = rules.announceAt.split(" ");
-  const when = rv.next && rv.next < annDay
+  const when = rv.adminOnly ? "ตอนนี้ตารางคะแนนดูได้เฉพาะแอดมิน"
+    : rv.next && rv.next < annDay
     ? `เปิดให้ทุกคนดู ${fmtDateLong(rv.next)}${rv.daysLeft > 0 ? ` (อีก ${rv.daysLeft} วัน)` : ""}`
     : `ประกาศผล ${annDay === todayIso() ? "วันนี้" : fmtDateLong(annDay)} ${annTime} น. — เปิดให้ทุกคนดูอัตโนมัติ`;
   // วันประกาศผล: เปิดหน้ารอไว้ ถึงเวลาแล้วรีโหลดเอง (ไม่ต้องกดรีเฟรช)
-  if (annDay === todayIso()) {
+  if (annDay === todayIso() && !rv.adminOnly) {
     const [h, m] = annTime.split(":").map(Number), at = new Date();
     at.setHours(h, m, 5, 0);
     if (at > new Date()) setTimeout(() => location.reload(), at - new Date());
@@ -35,7 +36,7 @@ function lockScreen(rules) {
   $("title").textContent = rules.title;
   $("range").textContent = `${fmtDateLong(rules.startDate)} – ${fmtDateLong(rules.endDate)}`;
   $("progress-text").textContent = rv.afterEnd ? "จบกิจกรรมแล้ว" : "";
-  $("progress-days").textContent = `ประกาศผล ${fmtStamp(rules.announceAt)}`;
+  $("progress-days").textContent = rv.announced ? "ประกาศผลแล้ว" : `ประกาศผล ${fmtStamp(rules.announceAt)}`;
   $("updated").textContent = "🔒 ล็อกอยู่";
   // ซ่อน <main> ไว้เฉย ๆ (ไม่ลบทิ้ง) เพื่อให้ event listener ที่ผูกไว้ตอนโหลดยังอยู่ครบหลังปลดล็อก
   $("main").hidden = true;
@@ -49,7 +50,7 @@ function lockScreen(rules) {
       <p class="hint">${esc(when)}</p>
       <label class="field" for="board-pin"><span>รหัสผู้ดูแล</span>
         <div class="pin-wrap">
-          <input type="password" id="board-pin" autocomplete="off" autocapitalize="characters" placeholder="ใส่รหัสเพื่อดูก่อน">
+          <input type="password" id="board-pin" autocomplete="off" autocapitalize="characters" placeholder="${rv.adminOnly ? "ใส่รหัสเพื่อดู" : "ใส่รหัสเพื่อดูก่อน"}">
           <button type="button" class="btn-eye" id="board-pin-eye" aria-label="แสดงรหัส">👁</button>
         </div>
       </label>

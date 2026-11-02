@@ -19,7 +19,7 @@
 //                        (คนละวันในวีคเดียวกัน Code.gs ปฏิเสธ — ถ้าพิมพ์เองในชีต ใบหลังไม่มีผล)
 //   ลำดับคิด: block → carry → x2 → เพดาน
 
-import { todayIso, nowTime, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvuew5z2";
+import { todayIso, nowTime, addDays, daysInclusive, normalizeDate, parseDate, toIso } from "./format.js?v=mvz4al3k";
 
 export const ACTIVITIES = {
   run:       { label: "วิ่งสวน",     unit: "กม.",  icon: "🏃" },
@@ -114,22 +114,27 @@ export function readRules(config) {
     boardPin: String(config.board_pin || "").trim(), // รหัสเปิดดูตารางคะแนน (เว้นว่าง = ใครก็ดูได้)
     // เวลาประกาศผล (เวลาไทย) — ตารางคะแนนเปิดให้ทุกคนตอนนี้ · ไม่ใส่ = วันถัดจาก end_date 16:00
     announceAt: normalizeStamp(config.announce_at) || `${addDays(endDate, 1)} 16:00`,
+    // ปิดตารางคะแนนกลับเป็นของแอดมินอย่างเดียว (เช่น หลังจบงาน) — TRUE = ต้องใส่ board_pin เสมอ ไม่สน announce_at / reveal_dates
+    adminOnly: /^(true|1|yes|y|on|ใช่)$/i.test(String(config.admin_only || "").trim()),
   };
 }
 
 // ตารางคะแนน (board.html) เปิดให้ทุกคนดูวันนี้ไหม
 //   ไม่ตั้ง board_pin         → ใครก็ดูได้ (เหมือนเดิม)
 //   ตั้ง board_pin            → ต้องใส่รหัส ยกเว้นวันใน reveal_dates และตั้งแต่เวลาประกาศผล (announce_at)
+//   ตั้ง board_pin + admin_only → ต้องใส่รหัสเสมอ (ไม่มี board_pin = admin_only ไม่มีผล กันล็อกจนไม่มีใครเข้าได้)
 export function revealState(rules, today = todayIso(), time = nowTime()) {
   const dates = rules.revealDates;
   const afterEnd = today > rules.endDate; // ปิดรับผล/การ์ดแล้ว
   const announced = `${today} ${time}` >= rules.announceAt;
-  const isPublic = !rules.boardPin || announced || dates.includes(today);
+  const adminOnly = Boolean(rules.adminOnly && rules.boardPin);
+  const isPublic = !rules.boardPin || (!adminOnly && (announced || dates.includes(today)));
   const next = dates.find((d) => d > today) || "";
   return {
     public: isPublic,
     afterEnd,
     announced,
+    adminOnly,
     next,
     daysLeft: next ? Math.round((parseDate(next) - parseDate(today)) / 86400000) : 0,
   };

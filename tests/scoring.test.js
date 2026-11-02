@@ -357,3 +357,13 @@ test("block วันสุดท้าย: เฉลยตอนประกา
   eq(day(at("09:00", { revealLast: true }), "A", L), 20, "แอดมินเห็นก่อน");
   assert.equal(computeScores(data, L, { time: "23:00" }).cards.find((c) => c.date === L).detail, "เฉลยตอนประกาศผล", "ระหว่างวันสุดท้ายบอกว่ารอประกาศ");
 });
+
+test("admin_only: หลังประกาศผลปิดตารางกลับเป็นของแอดมิน · ไม่มี board_pin = ไม่มีผล", () => {
+  const r = readRules({ ...CONFIG, board_pin: "X1", admin_only: "TRUE", reveal_dates: "2026-11-02" });
+  const rv = revealState(r, "2026-11-02", "10:00");
+  assert.equal(rv.public, false, "ต้องใส่รหัส แม้เป็นวันใน reveal_dates");
+  assert.equal(rv.announced, true, "ประกาศผลแล้ว — block วันสุดท้ายยังเฉลยตามปกติ");
+  assert.equal(rv.adminOnly, true);
+  assert.equal(revealState(readRules({ ...CONFIG, board_pin: "X1", admin_only: "" }), "2026-11-02", "10:00").public, true, "ไม่ตั้ง = เปิดหลังประกาศเหมือนเดิม");
+  assert.equal(revealState(readRules({ ...CONFIG, admin_only: "TRUE" }), "2026-11-02", "10:00").public, true, "ไม่มี board_pin → ไม่ล็อก");
+});
